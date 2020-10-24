@@ -47,12 +47,12 @@
                                                  //  it only allows firmware upgrades starting from version 6.6.0.11
 
 // -- Project -------------------------------------
-#define PROJECT                "tasmota"         // PROJECT is used as the default topic delimiter
+#define PROJECT                "ENVION_SS"         // PROJECT is used as the default topic delimiter
 
 // If not selected the default will be SONOFF_BASIC
-//#define MODULE                 SONOFF_BASIC      // [Module] Select default module from tasmota_template.h
+#define MODULE                 ENVION_SS      // [Module] Select default module from tasmota_template.h
 #ifdef ESP8266
-#define FALLBACK_MODULE        SONOFF_BASIC      // [Module2] Select default module on fast reboot where USER_MODULE is user template
+#define FALLBACK_MODULE        ENVION_SS      // [Module2] Select default module on fast reboot where USER_MODULE is user template
 //#define USER_TEMPLATE "{\"NAME\":\"Generic\",\"GPIO\":[255,255,255,255,255,255,255,255,255,255,255,255,255],\"FLAG\":15,\"BASE\":18}"  // [Template] Set JSON template
 #else // ESP32
 #define FALLBACK_MODULE        WEMOS             // [Module2] Select default module on fast reboot where USER_MODULE is user template
@@ -74,7 +74,7 @@
 #define STA_SSID2              ""                // [Ssid2] Optional alternate AP Wifi SSID
 #define STA_PASS2              ""                // [Password2] Optional alternate AP Wifi password
 #define WIFI_AP_PASSPHRASE     ""                // AccessPoint passphrase. For WPA2 min 8 char, for open use "" (max 63 char).
-#define WIFI_CONFIG_TOOL       WIFI_RETRY        // [WifiConfig] Default tool if wifi fails to connect (default option: 4 - WIFI_RETRY)
+#define WIFI_CONFIG_TOOL       WIFI_MANAGER      // [WifiConfig] Default tool if wifi fails to connect (default option: 4 - WIFI_RETRY)
                                                  // (WIFI_RESTART, WIFI_MANAGER, WIFI_RETRY, WIFI_WAIT, WIFI_SERIAL, WIFI_MANAGER_RESET_ONLY)
                                                  // The configuration can be changed after first setup using WifiConfig 0, 2, 4, 5, 6 and 7.
 #define WIFI_ARP_INTERVAL      0                 // [SetOption41] Send gratuitous ARP interval
@@ -96,12 +96,12 @@
 // -- MQTT ----------------------------------------
 #define MQTT_USE               true              // [SetOption3] Select default MQTT use (false = Off, true = On)
 
-#define MQTT_HOST              ""                // [MqttHost]
+#define MQTT_HOST              "192.168.0.200"                // [MqttHost]
 #define MQTT_FINGERPRINT1      0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00  // [MqttFingerprint1] (auto-learn)
 #define MQTT_FINGERPRINT2      0xDA,0x39,0xA3,0xEE,0x5E,0x6B,0x4B,0x0D,0x32,0x55,0xBF,0xEF,0x95,0x60,0x18,0x90,0xAF,0xD8,0x07,0x09  // [MqttFingerprint2] (invalid)
 #define MQTT_PORT              1883              // [MqttPort] MQTT port (10123 on CloudMQTT)
-#define MQTT_USER              "DVES_USER"       // [MqttUser] MQTT user
-#define MQTT_PASS              "DVES_PASS"       // [MqttPassword] MQTT password
+#define MQTT_USER              "digimart"       // [MqttUser] MQTT user
+#define MQTT_PASS              "solutions"       // [MqttPassword] MQTT password
 
 #define MQTT_BUTTON_RETAIN     false             // [ButtonRetain] Button may send retain flag (false = off, true = on)
 #define MQTT_POWER_RETAIN      false             // [PowerRetain] Power status message may send retain flag (false = off, true = on)
@@ -110,8 +110,8 @@
 #define MQTT_NO_HOLD_RETAIN    false             // [SetOption62] Disable retain flag on HOLD messages
 #define MQTT_NO_RETAIN         false             // [SetOption104] No Retain - disable all MQTT retained messages, some brokers don't support it: AWS IoT, Losant
 
-#define MQTT_STATUS_OFF        "OFF"             // [StateText1] Command or Status result when turned off (needs to be a string like "0" or "Off")
-#define MQTT_STATUS_ON         "ON"              // [StateText2] Command or Status result when turned on (needs to be a string like "1" or "On")
+#define MQTT_STATUS_OFF        "TOGGLE"             // [StateText1] Command or Status result when turned off (needs to be a string like "0" or "Off")
+#define MQTT_STATUS_ON         "TOGGLE"              // [StateText2] Command or Status result when turned on (needs to be a string like "1" or "On")
 #define MQTT_CMND_TOGGLE       "TOGGLE"          // [StateText3] Command to send when toggling (needs to be a string like "2" or "Toggle")
 #define MQTT_CMND_HOLD         "HOLD"            // [StateText4] Command to send when button is kept down for over KEY_HOLD_TIME * 0.1 seconds (needs to be a string like "HOLD")
 
@@ -125,11 +125,11 @@
 #define PUB_PREFIX2            "tele"            // [Prefix3] Tasmota devices publish telemetry data to %prefix%/%topic% being PUB_PREFIX2/MQTT_TOPIC/UPTIME, POWER and TIME
                                                  //   May be named the same as PUB_PREFIX
 // %topic% token options (also ButtonTopic and SwitchTopic)
-#define MQTT_TOPIC             PROJECT "_%06X"   // [Topic] unique MQTT device topic including (part of) device MAC address
-#define MQTT_GRPTOPIC          "tasmotas"        // [GroupTopic] MQTT Group topic
+#define MQTT_TOPIC             PROJECT           // [Topic] unique MQTT device topic including (part of) device MAC address
+#define MQTT_GRPTOPIC          "GSS"             // [GroupTopic] MQTT Group topic
 #define MQTT_GROUPTOPIC_FORMAT false             // [SetOption75] GroupTopic replaces %topic% (false) or fixed topic cmnd/grouptopic (true)
 #define MQTT_BUTTON_TOPIC      "0"               // [ButtonTopic] MQTT button topic, "0" = same as MQTT_TOPIC, set to 'PROJECT "_BTN_%06X"' for unique topic including device MAC address
-#define MQTT_SWITCH_TOPIC      "0"               // [SwitchTopic] MQTT button topic, "0" = same as MQTT_TOPIC, set to 'PROJECT "_SW_%06X"' for unique topic including device MAC address
+#define MQTT_SWITCH_TOPIC      "1"               // [SwitchTopic] MQTT button topic, "0" = same as MQTT_TOPIC, set to 'PROJECT "_SW_%06X"' for unique topic including device MAC address
 #define MQTT_CLIENT_ID         "DVES_%06X"       // [MqttClient] Also fall back topic using last 6 characters of MAC address or use "DVES_%12X" for complete MAC address
 
 // -- MQTT - Telemetry ----------------------------
@@ -146,7 +146,7 @@
                                                  // won't be shown as OFFLINE on Home Assistant when the device is DeepSleeping - NOTE: This is only for read-only sensors and binary_sensors, relays will be shown as OFFLINE)
 
 // -- MQTT - Options ------------------------------
-#define MQTT_RESULT_COMMAND    false             // [SetOption4]  Switch between MQTT RESULT or COMMAND
+#define MQTT_RESULT_COMMAND    true             // [SetOption4]  Switch between MQTT RESULT or COMMAND
 #define MQTT_LWT_MESSAGE       false             // [SetOption10] Switch between MQTT LWT OFFLINE or empty message
 #define MQTT_POWER_FORMAT      false             // [SetOption26] Switch between POWER or POWER1 for single power devices
 #define MQTT_APPEND_TIMEZONE   false             // [SetOption52] Append timezone to JSON time
@@ -158,7 +158,7 @@
 // -- HTTP ----------------------------------------
 #define WEB_SERVER             2                 // [WebServer] Web server (0 = Off, 1 = Start as User, 2 = Start as Admin)
 #define WEB_PASSWORD           ""                // [WebPassword] Web server Admin mode Password for WEB_USERNAME (empty string = Disable)
-#define FRIENDLY_NAME          "Tasmota"         // [FriendlyName] Friendlyname up to 32 characters used by webpages and Alexa
+#define FRIENDLY_NAME          "2 Way Switch"         // [FriendlyName] Friendlyname up to 32 characters used by webpages and Alexa
 #define EMULATION              EMUL_NONE         // [Emulation] Select Belkin WeMo (single relay/light) or Hue Bridge emulation (multi relay/light) (EMUL_NONE, EMUL_WEMO or EMUL_HUE)
 #define EMULATION_HUE_1ST_GEN  false             // [Emulation] Force SetOption109 1 - if you only have Echo Dot 2nd gen devices
 #define CORS_DOMAIN            ""                // [Cors] CORS Domain for preflight requests
@@ -403,7 +403,7 @@
 
 // -- KNX IP Protocol -----------------------------
 //#define USE_KNX                                  // Enable KNX IP Protocol Support (+9.4k code, +3k7 mem)
-  #define USE_KNX_WEB_MENU                       // Enable KNX WEB MENU (+8.3k code, +144 mem)
+//#define USE_KNX_WEB_MENU                       // Enable KNX WEB MENU (+8.3k code, +144 mem)
 
 // -- HTTP ----------------------------------------
 #define USE_WEBSERVER                            // Enable web server and Wifi Manager (+66k code, +8k mem)
@@ -411,8 +411,8 @@
   #define WEB_USERNAME         "admin"           // Web server Admin mode user name
 //  #define USE_JAVASCRIPT_ES6                     // Enable ECMAScript6 syntax using less JavaScript code bytes (fails on IE11)
 //  #define USE_WEBSEND_RESPONSE                   // Enable command WebSend response message (+1k code)
-  #define USE_EMULATION_HUE                      // Enable Hue Bridge emulation for Alexa (+14k code, +2k mem common)
-  #define USE_EMULATION_WEMO                     // Enable Belkin WeMo emulation for Alexa (+6k code, +2k mem common)
+//  #define USE_EMULATION_HUE                      // Enable Hue Bridge emulation for Alexa (+14k code, +2k mem common)
+//  #define USE_EMULATION_WEMO                     // Enable Belkin WeMo emulation for Alexa (+6k code, +2k mem common)
 
 // -- mDNS ----------------------------------------
 #define USE_DISCOVERY                            // Enable mDNS for the following services (+8k code or +23.5k code with core 2_5_x, +0.3k mem)
@@ -471,7 +471,7 @@
 #define USE_SONOFF_D1                            // Add support for Sonoff D1 Dimmer (+0k7 code)
 
 // -- Optional light modules ----------------------
-#define USE_WS2812                               // WS2812 Led string using library NeoPixelBus (+5k code, +1k mem, 232 iram) - Disable by //
+// #define USE_WS2812                               // WS2812 Led string using library NeoPixelBus (+5k code, +1k mem, 232 iram) - Disable by //
 //  #define USE_WS2812_DMA                         // DMA supports only GPIO03 (= Serial RXD) (+1k mem). When USE_WS2812_DMA is enabled expect Exceptions on Pow
 //  #define USE_WS2812_INVERTED                    // Use inverted data signal
   #define USE_WS2812_HARDWARE  NEO_HW_WS2812     // Hardware type (NEO_HW_WS2812, NEO_HW_WS2812X, NEO_HW_WS2813, NEO_HW_SK6812, NEO_HW_LC8812, NEO_HW_APA106)
@@ -491,11 +491,11 @@
 //#define USE_ADC_VCC                              // Display Vcc in Power status. Disable for use as Analog input on selected devices
 
 // -- One wire sensors ----------------------------
-#define USE_DS18x20                              // Add support for DS18x20 sensors with id sort, single scan and read retry (+2k6 code)
+//#define USE_DS18x20                              // Add support for DS18x20 sensors with id sort, single scan and read retry (+2k6 code)
 //  #define W1_PARASITE_POWER                      // Optimize for parasite powered sensors
 
 // -- I2C sensors ---------------------------------
-#define USE_I2C                                  // I2C using library wire (+10k code, 0k2 mem, 124 iram)
+// #define USE_I2C                                  // I2C using library wire (+10k code, 0k2 mem, 124 iram)
 
 #ifdef USE_I2C
 //  #define USE_SHT                                // [I2cDriver8] Enable SHT1X sensor (+1k4 code)
@@ -644,12 +644,12 @@
 //#define USE_MIEL_HVAC                            // Add support for Mitsubishi Electric HVAC serial interface (+5k code)
 
 // -- Power monitoring sensors --------------------
-#define USE_ENERGY_MARGIN_DETECTION              // Add support for Energy Margin detection (+1k6 code)
-  #define USE_ENERGY_POWER_LIMIT                 // Add additional support for Energy Power Limit detection (+1k2 code)
-#define USE_PZEM004T                             // Add support for PZEM004T Energy monitor (+2k code)
-#define USE_PZEM_AC                              // Add support for PZEM014,016 Energy monitor (+1k1 code)
-#define USE_PZEM_DC                              // Add support for PZEM003,017 Energy monitor (+1k1 code)
-#define USE_MCP39F501                            // Add support for MCP39F501 Energy monitor as used in Shelly 2 (+3k1 code)
+// #define USE_ENERGY_MARGIN_DETECTION              // Add support for Energy Margin detection (+1k6 code)
+//   #define USE_ENERGY_POWER_LIMIT                 // Add additional support for Energy Power Limit detection (+1k2 code)
+// #define USE_PZEM004T                             // Add support for PZEM004T Energy monitor (+2k code)
+// #define USE_PZEM_AC                              // Add support for PZEM014,016 Energy monitor (+1k1 code)
+// #define USE_PZEM_DC                              // Add support for PZEM003,017 Energy monitor (+1k1 code)
+// #define USE_MCP39F501                            // Add support for MCP39F501 Energy monitor as used in Shelly 2 (+3k1 code)
 //#define USE_SDM120                               // Add support for Eastron SDM120-Modbus energy monitor (+1k1 code)
   #define SDM120_SPEED         2400              // SDM120-Modbus RS485 serial speed (default: 2400 baud)
 //#define USE_SDM630                               // Add support for Eastron SDM630-Modbus energy monitor (+0k6 code)
@@ -695,15 +695,15 @@
 // You can reduce this size by disabling some protocols in "lib/IRremoteESP8266.x.x.x/src/IRremoteESP8266.h"
 
 // -- IR Remote features - subset of IR protocols --------------------------
-#define USE_IR_REMOTE                            // Send IR remote commands using library IRremoteESP8266 and ArduinoJson (+4k3 code, 0k3 mem, 48 iram)
-  #define USE_IR_SEND_NEC                        // Support IRsend NEC protocol
-  #define USE_IR_SEND_RC5                        // Support IRsend Philips RC5 protocol
-  #define USE_IR_SEND_RC6                        // Support IRsend Philips RC6 protocol
+//#define USE_IR_REMOTE                            // Send IR remote commands using library IRremoteESP8266 and ArduinoJson (+4k3 code, 0k3 mem, 48 iram)
+//#define USE_IR_SEND_NEC                        // Support IRsend NEC protocol
+//#define USE_IR_SEND_RC5                        // Support IRsend Philips RC5 protocol
+//#define USE_IR_SEND_RC6                        // Support IRsend Philips RC6 protocol
 
-  #define USE_IR_RECEIVE                         // Support for IR receiver (+7k2 code, 264 iram)
-    #define IR_RCV_BUFFER_SIZE      100          // Max number of packets allowed in capture buffer (default 100 (*2 bytes ram))
-    #define IR_RCV_TIMEOUT          15           // Number of milli-Seconds of no-more-data before we consider a message ended (default 15)
-    #define IR_RCV_MIN_UNKNOWN_SIZE 6            // Set the smallest sized "UNKNOWN" message packets we actually care about (default 6, max 255)
+ // #define USE_IR_RECEIVE                         // Support for IR receiver (+7k2 code, 264 iram)
+ // #define IR_RCV_BUFFER_SIZE      100          // Max number of packets allowed in capture buffer (default 100 (*2 bytes ram))
+ // #define IR_RCV_TIMEOUT          15           // Number of milli-Seconds of no-more-data before we consider a message ended (default 15)
+ // #define IR_RCV_MIN_UNKNOWN_SIZE 6            // Set the smallest sized "UNKNOWN" message packets we actually care about (default 6, max 255)
 
 // -- Zigbee interface ----------------------------
 //#define USE_ZIGBEE                                // Enable serial communication with Zigbee CC2530 flashed with ZNP (+49k code, +3k mem)

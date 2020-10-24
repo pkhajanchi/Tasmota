@@ -1243,7 +1243,7 @@ const uint16_t kGpioConvert[] PROGMEM = {
 // Supported hardware modules
 
 enum SupportedModules {
-  SONOFF_BASIC, SONOFF_RF, SONOFF_SV, SONOFF_TH, SONOFF_DUAL, SONOFF_POW, SONOFF_4CH, SONOFF_S2X, SLAMPHER, SONOFF_TOUCH,
+  ENVION_SS, SONOFF_RF, SONOFF_SV, SONOFF_TH, SONOFF_DUAL, SONOFF_POW, SONOFF_4CH, SONOFF_S2X, SLAMPHER, SONOFF_TOUCH,
   SONOFF_LED, CH1, CH4, MOTOR, ELECTRODRAGON, EXS_RELAY, WION, WEMOS, SONOFF_DEV, H801,
   SONOFF_SC, SONOFF_BN, SONOFF_4CHPRO, HUAFAN_SS, SONOFF_BRIDGE, SONOFF_B1, AILIGHT, SONOFF_T11, SONOFF_T12, SONOFF_T13,
   SUPLA1, WITTY, YUNSHAN, MAGICHOME, LUANIHVIO, KMC_70011, ARILUX_LC01, ARILUX_LC11, SONOFF_DUAL_R2, ARILUX_LC06,
@@ -1256,7 +1256,7 @@ enum SupportedModules {
 #define USER_MODULE        255
 
 const char kModuleNames[] PROGMEM =
-  "Sonoff Basic|Sonoff RF|Sonoff SV|Sonoff TH|Sonoff Dual|Sonoff Pow|Sonoff 4CH|Sonoff S2X|Slampher|Sonoff Touch|"
+  "Envion Smart Switch|Sonoff RF|Sonoff SV|Sonoff TH|Sonoff Dual|Sonoff Pow|Sonoff 4CH|Sonoff S2X|Slampher|Sonoff Touch|"
   "Sonoff LED|1 Channel|4 Channel|Motor C/AC|ElectroDragon|EXS Relay(s)|WiOn|Generic|Sonoff Dev|H801|"
   "Sonoff SC|Sonoff BN-SZ|Sonoff 4CH Pro|Huafan SS|Sonoff Bridge|Sonoff B1|AiLight|Sonoff T1 1CH|Sonoff T1 2CH|Sonoff T1 3CH|"
   "Supla Espablo|Witty Cloud|Yunshan Relay|MagicHome|Luani HVIO|KMC 70011|Arilux LC01|Arilux LC11|Sonoff Dual R2|Arilux LC06|"
@@ -1267,7 +1267,7 @@ const char kModuleNames[] PROGMEM =
   ;
 
 const uint8_t kModuleNiceList[] PROGMEM = {
-  SONOFF_BASIC,        // Sonoff Relay Devices
+  ENVION_SS,        // Envion Smart Switch
   SONOFF_RF,
   SONOFF_TH,
   SONOFF_DUAL,
@@ -1466,25 +1466,25 @@ const uint8_t kModuleTemplateList[MAXMODULE] PROGMEM = {
 \*********************************************************************************************/
 
 const mytmplt8266 kModules8266[TMP_MAXMODULE_8285] PROGMEM = {
-  {                     // SONOFF_BASIC - Sonoff Basic (ESP8266)
-    GPI8_KEY1,          // GPIO00 Button
-    GPI8_USER,          // GPIO01 Serial RXD and Optional sensor
-    GPI8_USER,          // GPIO02 Only available on newer Sonoff Basic R2 V1
-    GPI8_USER,          // GPIO03 Serial TXD and Optional sensor
-    GPI8_USER,          // GPIO04 Optional sensor
-    0,                  // GPIO05
-                        // GPIO06 (SD_CLK   Flash)
-                        // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
-                        // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
-                        // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
-                        // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
-                        // GPIO11 (SD_CMD   Flash)
-    GPI8_REL1,          // GPIO12 Red Led and Relay (0 = Off, 1 = On)
-    GPI8_LED1_INV,      // GPIO13 Green Led (0 = On, 1 = Off) - Link and Power status
-    GPI8_USER,          // GPIO14 Optional sensor
-    0,                  // GPIO15
-    0,                  // GPIO16
-    0                   // ADC0 Analog input
+  {                      // ENVION_SS - ENVION Smart Switch (ESP8266)
+    GPI8_REL2,                   // GPIO00 Button
+    0,                   // GPIO01 Serial RXD and Optional sensor
+    GPI8_USER,           // GPIO02 Only available on newer Sonoff Basic R2 V1
+    GPI8_REL1,           // GPIO03 Serial TXD and Optional sensor
+    GPI8_SWT3,           // GPIO04 Optional sensor
+    GPI8_SWT4,           // GPIO05
+                         // GPIO06 (SD_CLK   Flash)
+                         // GPIO07 (SD_DATA0 Flash QIO/DIO/DOUT)
+                         // GPIO08 (SD_DATA1 Flash QIO/DIO/DOUT)
+                         // GPIO09 (SD_DATA2 Flash QIO or ESP8285)
+                         // GPIO10 (SD_DATA3 Flash QIO or ESP8285)
+                         // GPIO11 (SD_CMD   Flash)
+    GPI8_SWT1,           // GPIO12 Red Led and Relay (0 = Off, 1 = On)
+    GPI8_USER,           // GPIO13 Green Led (0 = On, 1 = Off) - Link and Power status
+    GPI8_SWT2,           // GPIO14 Optional sensor
+    GPI8_REL4,           // GPIO15
+    GPI8_REL3            // GPIO16
+                         // ADC0 Analog input
   },
   {                     // SONOFF_SV - Sonoff SV (ESP8266)
     GPI8_KEY1,          // GPIO00 Button
