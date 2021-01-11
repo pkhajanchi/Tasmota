@@ -1,7 +1,7 @@
 /*
   xsns_38_az7798.ino - AZ_Instrument 7798 CO2/temperature/humidity meter support for Tasmota
 
-  Copyright (C) 2020  Theo Arends
+  Copyright (C) 2021  Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -283,7 +283,7 @@ void AzShow(bool json)
     ResponseAppendTHD(az_temperature, az_humidity);
     ResponseJsonEnd();
 #ifdef USE_DOMOTICZ
-    if (0 == tele_period) DomoticzSensor(DZ_AIRQUALITY, az_co2);
+    if (0 == TasmotaGlobal.tele_period) DomoticzSensor(DZ_AIRQUALITY, az_co2);
 #endif  // USE_DOMOTICZ
 #ifdef USE_WEBSERVER
   } else {

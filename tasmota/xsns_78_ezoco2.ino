@@ -1,7 +1,7 @@
 /*
   xsns_78_ezoco2.ino - EZO CO2 I2C CO2 sensor support for Tasmota
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ struct EZOCO2 : public EZOStruct {
     EZOStruct::ProcessMeasurement(data, sizeof(data), EZO_CO2_READ_LATENCY);
 
     // sensor has a 10s warmup period
-    if (uptime >= 10) {
+    if (TasmotaGlobal.uptime >= 10) {
       CO2 = atoi(data);
     }
   }
@@ -42,16 +42,20 @@ struct EZOCO2 : public EZOStruct {
     if (json) {
       ResponseAppend_P(PSTR(",\"%s\":{\"" D_JSON_CO2 "\":%d}" ), name, CO2);
     }
-#ifdef USE_WEBSERVER  
+#ifdef USE_WEBSERVER
     else {
       WSContentSend_PD(HTTP_SNS_CO2, name, CO2);
 #endif  // USE_WEBSERVER
     }
   }
 
+  static const char id[] PROGMEM;
+
 private:
   uint16_t  CO2;
 };
+
+const char EZOCO2::id[] PROGMEM = "CO2";
 
 #endif  // USE_EZOCO2
 #endif  // USE_I2C

@@ -1,7 +1,7 @@
 /*
   xsns_78_xezo.ino - EZO family I2C driver support for Tasmota
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@
 
 
 // List of known EZO devices and their default address
-
 enum {
   EZO_DO  = 0x61, // D.O.
   EZO_ORP = 0x62, // ORP
@@ -49,83 +48,79 @@ enum {
 };
 
 
-const char EZO_EMPTY[]    PROGMEM = "";
-//const char EZO_DO_NAME[]  PROGMEM = "DO";
-#ifdef USE_EZOORP
-const char EZO_ORP_NAME[] PROGMEM = "ORP";
-#endif
-#ifdef USE_EZOPH
-const char EZO_PH_NAME[]  PROGMEM = "pH";
-#endif
-#ifdef USE_EZOEC
-const char EZO_EC_NAME[]  PROGMEM = "EC";
-#endif
-#ifdef USE_EZORTD
-const char EZO_RTD_NAME[] PROGMEM = "RTD";
-#endif
-//const char EZO_PMP_NAME[] PROGMEM = "PMP";
-//const char EZO_FLO_NAME[] PROGMEM = "FLO";
-const char EZO_CO2_NAME[] PROGMEM = "CO2";
-//const char EZO_PRS_NAME[] PROGMEM = "PRS";
-//const char EZO_O2_NAME[]  PROGMEM = "O2";
-#ifdef USE_EZOHUM
-const char EZO_HUM_NAME[] PROGMEM = "HUM";
-#endif
-//const char EZO_RGB_NAME[] PROGMEM = "RGB";
 
+// The order of the EZO devices must map with the enum declared above
 const char *const EZOSupport[EZO_ADDR_n] PROGMEM = {
-  EZO_EMPTY,
-
+#ifdef USE_EZODO
+  EZODO::id,
+#else
+  EZOStruct::id,
+#endif
 #ifdef USE_EZOORP
-  EZO_ORP_NAME,
+  EZOORP::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
 #ifdef USE_EZOPH
-  EZO_PH_NAME,
+  EZOPH::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
 #ifdef USE_EZOEC
-  EZO_EC_NAME,
+  EZOEC::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
-  EZO_EMPTY,
-
+  EZOStruct::id,  // <unnamed>
 #ifdef USE_EZORTD
-  EZO_RTD_NAME,
+  EZORTD::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
-  EZO_EMPTY,
-  EZO_EMPTY,
-
+#ifdef USE_EZOPMP
+  EZOPMP::id,
+#else
+  EZOStruct::id,
+#endif
+#ifdef USE_EZOFLO
+  EZOFLO::id,
+#else
+  EZOStruct::id,
+#endif
 #ifdef USE_EZOCO2
-  EZO_CO2_NAME,
+  EZOCO2::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
-  EZO_EMPTY,
-  EZO_EMPTY,
-  EZO_EMPTY,
-  EZO_EMPTY,
-  EZO_EMPTY,
-
+#ifdef USE_EZOPRS
+  EZOPRS::id,
+#else
+  EZOStruct::id,
+#endif
+  EZOStruct::id,  // <unnamed>
+#ifdef USE_EZOO2
+  EZOO2::id,
+#else
+  EZOStruct::id,
+#endif
+  EZOStruct::id,  // <unnamed>
+  EZOStruct::id,  // <unnamed>
 #ifdef USE_EZOHUM
-  EZO_HUM_NAME,
+  EZOHUM::id,
 #else
-  EZO_EMPTY,
+  EZOStruct::id,
 #endif
-
-  EZO_EMPTY,
+#ifdef USE_EZORGB
+  EZORGB::id,
+#else
+  EZOStruct::id,
+#endif
 };
 
+#define CREATE_EZO_CLASS(CLASS)             \
+  case EZO_ ## CLASS:                       \
+    sensor[count] = new EZO ## CLASS(addr); \
+    break;
 
 
 struct EZOManager {
@@ -163,12 +158,12 @@ struct EZOManager {
     // Do we have to deal with the 2 stage booting process?
     if (count < 0) {
       // EZO devices take 2s to boot
-      if (uptime >= next) {
+      if (TasmotaGlobal.uptime >= next) {
         count++;
 
         if (count == -1) {
           DetectRequest();
-          next = uptime + 1;
+          next = TasmotaGlobal.uptime + 1;
         } else if (count == 0) {
           ProcessDetection();
         }
@@ -251,38 +246,43 @@ private:
 
                 // We use switch intead of virtual function to save RAM
                 switch (j + EZO_ADDR_0) {
+#ifdef USE_EZODO
+                  CREATE_EZO_CLASS(DO)
+#endif
 #ifdef USE_EZOORP
-                  case EZO_ORP:
-                    sensor[count] = new EZOORP(addr);
-                    break;
+                  CREATE_EZO_CLASS(ORP)
 #endif
 #ifdef USE_EZOPH
-                  case EZO_PH:
-                    sensor[count] = new EZOpH(addr);
-                    break;
+                  CREATE_EZO_CLASS(PH)
 #endif
 #ifdef USE_EZOEC
-                  case EZO_EC:
-                    sensor[count] = new EZOEC(addr);
-                    break;
+                  CREATE_EZO_CLASS(EC)
 #endif
 #ifdef USE_EZORTD
-                  case EZO_RTD:
-                    sensor[count] = new EZORTD(addr);
-                    break;
+                  CREATE_EZO_CLASS(RTD)
+#endif
+#ifdef USE_EZOPMP
+                  CREATE_EZO_CLASS(PMP)
+#endif
+#ifdef USE_EZOFLO
+                  CREATE_EZO_CLASS(FLO)
 #endif
 #ifdef USE_EZOCO2
-                  case EZO_CO2:
-                    sensor[count] = new EZOCO2(addr);
-                    break;
+                  CREATE_EZO_CLASS(CO2)
+#endif
+#ifdef USE_EZOPRS
+                  CREATE_EZO_CLASS(PRS)
+#endif
+#ifdef USE_EZOO2
+                  CREATE_EZO_CLASS(O2)
 #endif
 #ifdef USE_EZOHUM
-                  case EZO_HUM:
-                    sensor[count] = new EZOHUM(addr);
-                    break;
+                  CREATE_EZO_CLASS(HUM)
+#endif
+#ifdef USE_EZORGB
+                  CREATE_EZO_CLASS(RGB)
 #endif
                 }
-
                 count++;
               }
             }

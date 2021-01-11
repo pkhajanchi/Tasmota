@@ -1,7 +1,7 @@
 /*
   xsns_78_ezo.ino - EZO modules base class
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 */
 #ifdef USE_I2C
 
-#if defined(USE_EZOPH) || defined(USE_EZOORP) || defined(USE_EZORTD) || defined(USE_EZOHUM) || defined(USE_EZOEC) || defined(USE_EZOCO2)
+#if defined(USE_EZOPH) || defined(USE_EZOORP) || defined(USE_EZORTD) || defined(USE_EZOHUM) || defined(USE_EZOEC) || defined(USE_EZOCO2) || defined(USE_EZOO2) || defined(USE_EZOPRS) || defined(USE_EZOFLO) || defined(USE_EZODO) || defined(USE_EZORGB) || defined(USE_EZOPMP)
   #define USE_EZO
 #endif
 #if defined(USE_EZO)
 
 #define D_EZO_DELAY   300   // Minimum delay for any instruction
-#define D_EZO_MAX_BUF 40    // Maximum response
+#define D_EZO_MAX_BUF 52    // Maximum response
 
 const char D_EZO_NAME[] PROGMEM = "EZO";
 
@@ -80,6 +80,8 @@ struct EZOStruct {
   virtual void ProcessMeasurement(void);
   virtual void Show(bool json, const char *name);
 
+  static const char id[] PROGMEM;
+
 protected:
   void ProcessMeasurement(char *const data, const uint32_t len, const uint32_t latency)
   {
@@ -108,7 +110,7 @@ protected:
   uint32_t  lastRead;
 };
 
-
+const char EZOStruct::id[] PROGMEM = "";
 
 #endif  // USE_EZO
 #endif  // USE_I2C

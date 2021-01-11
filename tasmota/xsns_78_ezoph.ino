@@ -1,7 +1,7 @@
 /*
   xsns_78_ezoph.ino - EZO pH I2C pH sensor support for Tasmota
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,8 +22,8 @@
 
 #define EZO_PH_READ_LATENCY   900
 
-struct EZOpH : public EZOStruct {
-  EZOpH(uint32_t addr) : EZOStruct(addr), pH(NAN) {}
+struct EZOPH : public EZOStruct {
+  EZOPH(uint32_t addr) : EZOStruct(addr), pH(NAN) {}
 
   virtual void ProcessMeasurement(void)
   {
@@ -41,16 +41,20 @@ struct EZOpH : public EZOStruct {
     if (json) {
       ResponseAppend_P(PSTR(",\"%s\":{\"" D_JSON_PH "\":%s}" ), name, str);
     }
-#ifdef USE_WEBSERVER  
+#ifdef USE_WEBSERVER
     else {
       WSContentSend_PD(HTTP_SNS_PH, name, str);
 #endif  // USE_WEBSERVER
     }
   }
 
+  static const char id[] PROGMEM;
+
 private:
   float     pH;
 };
+
+const char EZOPH::id[]  PROGMEM = "pH";
 
 #endif  // USE_EZOPH
 #endif  // USE_I2C

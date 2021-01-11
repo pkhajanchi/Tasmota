@@ -1,7 +1,7 @@
 /*
   xsns_72_mcp9808 - MCP9808 I2C temperature sensor support for Tasmota
 
-  Copyright (C) 2020  Martin Wagner and Theo Arends
+  Copyright (C) 2021  Martin Wagner and Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ void MCP9808Show(bool json) {
 
     if (json) {
       ResponseAppend_P(JSON_SNS_TEMP, sensor_name, temperature);
-      if ((0 == tele_period) && (0 == i)) {
+      if ((0 == TasmotaGlobal.tele_period) && (0 == i)) {
 #ifdef USE_DOMOTICZ
         DomoticzSensor(DZ_TEMP, temperature);
 #endif  // USE_DOMOTICZ

@@ -1,7 +1,7 @@
 /*
   xsns_78_ezoorp.ino - EZO ORP I2C ORP sensor support for Tasmota
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,24 +35,26 @@ struct EZOORP : public EZOStruct {
 
   virtual void Show(bool json, const char *name)
   {
-    char str[6];
-    dtostrfd(ORP, 0, str);
+    char str[8];
+    dtostrfd(ORP, 2, str);
 
     if (json) {
       ResponseAppend_P(PSTR(",\"%s\":{\"" D_JSON_ORP "\":%s}" ), name, str);
     }
-#ifdef USE_WEBSERVER  
+#ifdef USE_WEBSERVER
     else {
       WSContentSend_PD(HTTP_SNS_ORP, name, str);
 #endif  // USE_WEBSERVER
     }
   }
 
+  static const char id[] PROGMEM;
+
 private:
   float     ORP;
 };
 
-
+const char EZOORP::id[] PROGMEM = "ORP";
 
 #endif  // USE_EZOORP
 #endif  // USE_I2C

@@ -1,7 +1,7 @@
 /*
   xsns_78_ezohum.ino - EZO HUM I2C HUM sensor support for Tasmota
 
-  Copyright (C) 2020  Christopher Tremblay
+  Copyright (C) 2021  Christopher Tremblay
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,14 +48,18 @@ struct EZOHUM : public EZOStruct {
       dtostrfd(humidity, Settings.flag2.humidity_resolution, parameter);
       WSContentSend_PD(HTTP_SNS_HUM, name, parameter);
     } else {
-      TempHumDewShow(json, (0 == tele_period), name, temperature, humidity);
+      TempHumDewShow(json, (0 == TasmotaGlobal.tele_period), name, temperature, humidity);
     }
   }
+
+  static const char id[] PROGMEM;
 
 private:
   float     humidity;
   float     temperature;
 };
+
+const char EZOHUM::id[] PROGMEM = "HUM";
 
 #endif  // USE_EZOHUM
 #endif  // USE_I2C

@@ -1,7 +1,7 @@
 /*
   xdrv_05_irremote.ino - infra red support for Tasmota
 
-  Copyright (C) 2020  Heiko Krupp, Lazar Obradovic and Theo Arends
+  Copyright (C) 2021  Heiko Krupp, Lazar Obradovic and Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,7 +62,13 @@ def ir_expand(ir_compact):
 #include <IRremoteESP8266.h>
 #include <IRutils.h>
 
-enum IrErrors { IE_NO_ERROR, IE_INVALID_RAWDATA, IE_INVALID_JSON, IE_SYNTAX_IRSEND };
+// Receiving IR while sending at the same time (i.e. receiving your own signal) was dsiabled in #10041
+// At the demand of @pilaGit, you can `#define IR_RCV_WHILE_SENDING 1` to bring back this behavior
+#ifndef IR_RCV_WHILE_SENDING
+#define IR_RCV_WHILE_SENDING  0
+#endif
+
+enum IrErrors { IE_NO_ERROR, IE_INVALID_RAWDATA, IE_INVALID_JSON, IE_SYNTAX_IRSEND, IE_PROTO_UNSUPPORTED };
 
 const char kIrRemoteCommands[] PROGMEM = "|" D_CMND_IRSEND ;
 
@@ -72,7 +78,7 @@ void (* const IrRemoteCommand[])(void) PROGMEM = {
 
 /*********************************************************************************************\
  * Class used to make a compact IR Raw format.
- * 
+ *
  * We round timings to the closest 10ms value,
  * and store up to last 26 values with seen.
  * A value already seen is encoded with a letter indicating the position in the table.
@@ -119,11 +125,10 @@ const char kIrRemoteProtocols[] PROGMEM = "UNKNOWN|RC5|RC6|NEC";
 #include <IRsend.h>
 
 IRsend *irsend = nullptr;
-bool irsend_active = false;
 
 void IrSendInit(void)
 {
-  irsend = new IRsend(Pin(GPIO_IRSEND)); // an IR led is at GPIO_IRSEND
+  irsend = new IRsend(Pin(GPIO_IRSEND), IR_SEND_INVERTED, IR_SEND_USE_MODULATION); // an IR led is at GPIO_IRSEND
   irsend->begin();
 }
 
@@ -185,12 +190,12 @@ void IrReceiveCheck(void)
       Uint64toHex(results.value, hvalue, 32);  // UNKNOWN is always 32 bits hash
     }
 
-    AddLog_P2(LOG_LEVEL_DEBUG, PSTR(D_LOG_IRR "Echo %d, RawLen %d, Overflow %d, Bits %d, Value 0x%s, Decode %d"),
-              irsend_active, results.rawlen, results.overflow, results.bits, hvalue, results.decode_type);
+    AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_IRR "RawLen %d, Overflow %d, Bits %d, Value 0x%s, Decode %d"),
+              results.rawlen, results.overflow, results.bits, hvalue, results.decode_type);
 
     unsigned long now = millis();
 //    if ((now - ir_lasttime > IR_TIME_AVOID_DUPLICATE) && (UNKNOWN != results.decode_type) && (results.bits > 0)) {
-    if (!irsend_active && (now - ir_lasttime > IR_TIME_AVOID_DUPLICATE)) {
+    if (now - ir_lasttime > IR_TIME_AVOID_DUPLICATE) {
       ir_lasttime = now;
 
       char svalue[64];
@@ -215,7 +220,7 @@ void IrReceiveCheck(void)
         ResponseAppend_P(PSTR(",\"" D_JSON_IR_RAWDATA "\":\""));
         size_t rawlen = results.rawlen;
         uint32_t i;
-        
+
         for (i = 1; i < rawlen; i++) {
           // round to closest 10ms
           uint32_t raw_val_millis = results.rawbuf[i] * kRawTick;
@@ -232,7 +237,7 @@ void IrReceiveCheck(void)
             prev_number = true;
           }
           ir_high = !ir_high;
-          if (strlen(mqtt_data) > sizeof(mqtt_data) - 40) { break; }  // Quit if char string becomes too long
+          if (strlen(TasmotaGlobal.mqtt_data) > sizeof(TasmotaGlobal.mqtt_data) - 40) { break; }  // Quit if char string becomes too long
         }
         uint16_t extended_length = getCorrectedRawLength(&results);
         ResponseAppend_P(PSTR("\",\"" D_JSON_IR_RAWDATA "Info\":[%d,%d,%d]"), extended_length, i -1, results.overflow);
@@ -274,7 +279,7 @@ uint32_t IrRemoteCmndIrSendJson(void)
   uint16_t bits = root.getUInt(PSTR(D_JSON_IR_BITS), 0);
   uint64_t data = root.getULong(PSTR(D_JSON_IR_DATA), 0);
   uint16_t repeat = root.getUInt(PSTR(D_JSON_IR_REPEAT), 0);
-  
+
   // check if the IRSend<x> is great than repeat
   if (XdrvMailbox.index > repeat + 1) {
     repeat = XdrvMailbox.index - 1;
@@ -288,10 +293,13 @@ uint32_t IrRemoteCmndIrSendJson(void)
 
   char dvalue[64];
   char hvalue[20];
-  AddLog_P2(LOG_LEVEL_DEBUG, PSTR("IRS: protocol_text %s, protocol %s, bits %d, data %s (0x%s), repeat %d, protocol_code %d"),
+  AddLog_P(LOG_LEVEL_DEBUG, PSTR("IRS: protocol_text %s, protocol %s, bits %d, data %s (0x%s), repeat %d, protocol_code %d"),
     protocol_text, protocol, bits, ulltoa(data, dvalue, 10), Uint64toHex(data, hvalue, bits), repeat, protocol_code);
 
-  irsend_active = true;
+#ifdef USE_IR_RECEIVE
+  if (!IR_RCV_WHILE_SENDING && (irrecv != nullptr)) { irrecv->disableIRIn(); }
+#endif  // USE_IR_RECEIVE
+
   switch (protocol_code) {  // Equals IRremoteESP8266.h enum decode_type_t
 #ifdef USE_IR_SEND_RC5
     case RC5:
@@ -306,9 +314,14 @@ uint32_t IrRemoteCmndIrSendJson(void)
       irsend->sendNEC(data, (bits > NEC_BITS) ? NEC_BITS : bits, repeat); break;
 #endif
     default:
-      irsend_active = false;
-      ResponseCmndChar(D_JSON_PROTOCOL_NOT_SUPPORTED);
+#ifdef USE_IR_RECEIVE
+      if (!IR_RCV_WHILE_SENDING && (irrecv != nullptr)) { irrecv->enableIRIn(); }
+#endif  // USE_IR_RECEIVE
+      return IE_PROTO_UNSUPPORTED;
   }
+#ifdef USE_IR_RECEIVE
+  if (!IR_RCV_WHILE_SENDING && (irrecv != nullptr)) { irrecv->enableIRIn(); }
+#endif  // USE_IR_RECEIVE
 
   return IE_NO_ERROR;
 }
@@ -318,7 +331,7 @@ void CmndIrSend(void)
   uint8_t error = IE_SYNTAX_IRSEND;
 
   if (XdrvMailbox.data_len) {
-    if (strstr(XdrvMailbox.data, "{") == nullptr) {
+    if (strchr(XdrvMailbox.data, '{') == nullptr) {
       error = IE_INVALID_JSON;
     } else {
       error = IrRemoteCmndIrSendJson();
@@ -335,6 +348,9 @@ void IrRemoteCmndResponse(uint32_t error)
       break;
     case IE_INVALID_JSON:
       ResponseCmndChar_P(PSTR(D_JSON_INVALID_JSON));
+      break;
+    case IE_PROTO_UNSUPPORTED:
+      ResponseCmndChar(D_JSON_PROTOCOL_NOT_SUPPORTED);
       break;
     case IE_SYNTAX_IRSEND:
       Response_P(PSTR("{\"" D_CMND_IRSEND "\":\"" D_JSON_NO " " D_JSON_IR_PROTOCOL ", " D_JSON_IR_BITS " " D_JSON_OR " " D_JSON_IR_DATA "\"}"));
@@ -370,7 +386,6 @@ bool Xdrv05(uint8_t function)
           IrReceiveCheck();  // check if there's anything on IR side
         }
 #endif  // USE_IR_RECEIVE
-        irsend_active = false;  // re-enable IR reception
         break;
       case FUNC_COMMAND:
         if (PinUsed(GPIO_IRSEND)) {

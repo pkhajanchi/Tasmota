@@ -1,7 +1,7 @@
 /*
   xnrg_12_solaxX1.ino - Solax X1 inverter RS485 support for Tasmota
 
-  Copyright (C) 2020  Pablo Zerón
+  Copyright (C) 2021  Pablo Zerón
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -414,14 +414,14 @@ void solaxX1SnsInit(void)
   if (solaxX1Serial->begin(SOLAXX1_SPEED)) {
     if (solaxX1Serial->hardwareSerial()) { ClaimSerial(); }
   } else {
-    energy_flg = ENERGY_NONE;
+    TasmotaGlobal.energy_driver = ENERGY_NONE;
   }
 }
 
 void solaxX1DrvInit(void)
 {
   if (PinUsed(GPIO_SOLAXX1_RX) && PinUsed(GPIO_SOLAXX1_TX)) {
-    energy_flg = XNRG_12;
+    TasmotaGlobal.energy_driver = XNRG_12;
   }
 }
 
@@ -505,7 +505,7 @@ bool Xnrg12(uint8_t function)
 
   switch (function) {
     case FUNC_EVERY_250_MSECOND:
-      if (uptime > 4) { solaxX1250MSecond(); }
+      solaxX1250MSecond();
       break;
     case FUNC_JSON_APPEND:
       solaxX1Show(1);

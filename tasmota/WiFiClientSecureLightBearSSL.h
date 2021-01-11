@@ -3,7 +3,7 @@
   - Mostly compatible with Arduino WiFi shield library and standard
     WiFiClient/ServerSecure (except for certificate handling).
 
-  Copyright (c) 2018 Earle F. Philhower, III
+  Copyright (C) 2021  Earle F. Philhower, III
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -112,7 +112,6 @@ class WiFiClientSecure_light : public WiFiClient {
     br_ssl_engine_context *_eng; // &_sc->eng, to allow for client or server contexts
     std::shared_ptr<unsigned char> _iobuf_in;
     std::shared_ptr<unsigned char> _iobuf_out;
-    time_t _now;
     int _iobuf_in_size;
     int _iobuf_out_size;
     bool _handshake_done;
