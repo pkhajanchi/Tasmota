@@ -47,12 +47,12 @@
                                                  //  it only allows firmware upgrades starting from version 6.6.0.11
 
 // -- Project -------------------------------------
-#define PROJECT                "SmartSwitches"         // PROJECT is used as the default topic delimiter
+#define PROJECT                "Envion_SS4"         // PROJECT is used as the default topic delimiter
 
 // If not selected the default will be SONOFF_BASIC
-#define MODULE                 SMART_SWITCHES      // [Module] Select default module from tasmota_template.h
+#define MODULE                 ENVION_SMART_SWITCH_4      // [Module] Select default module from tasmota_template.h
 #ifdef ESP8266
-#define FALLBACK_MODULE        SMART_SWITCHES      // [Module2] Select default module on fast reboot where USER_MODULE is user template
+#define FALLBACK_MODULE        ENVION_SMART_SWITCH_4      // [Module2] Select default module on fast reboot where USER_MODULE is user template
 //#define USER_TEMPLATE "{\"NAME\":\"Generic\",\"GPIO\":[1,1,1,1,1,1,1,1,1,1,1,1,1,1],\"FLAG\":0,\"BASE\":18}"  // [Template] Set JSON template
 #endif  // ESP8266
 #ifdef ESP32
@@ -92,7 +92,7 @@
 
 // -- Ota -----------------------------------------
 #ifdef ESP8266
-#define OTA_URL                "http://ota.tasmota.com/tasmota/release/tasmota.bin.gz"  // [OtaUrl]
+#define OTA_URL                ""  // [OtaUrl]
 #endif  // ESP8266
 #ifdef ESP32
 #define OTA_URL                "http://ota.tasmota.com/tasmota32/release/tasmota32.bin"  // [OtaUrl]

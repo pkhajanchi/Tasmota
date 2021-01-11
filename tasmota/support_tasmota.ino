@@ -1487,7 +1487,7 @@ void GpioInit(void)
     uint32_t module = MODULE;
     if (!ValidModule(MODULE)) {
 #ifdef ESP8266
-      module = SMART_SWITCHES;
+      module = ENVION_SMART_SWITCH_4;
 #endif  // ESP8266
 #ifdef ESP32
       module = WEMOS;
