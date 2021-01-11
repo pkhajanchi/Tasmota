@@ -1,7 +1,7 @@
 /*
   xns_74_lmt01.ino - Support for single wire LMT01 Temperature Sensor
 
-  Copyright (C) 2020  Theo Arends, Justifiably
+  Copyright (C) 2021  Theo Arends, Justifiably
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -91,12 +91,12 @@ void LMT01_Show(bool Json) {
   if (Json) {
     ResponseAppend_P(JSON_SNS_TEMP, "LMT01", temp);
 #ifdef USE_DOMOTICZ
-    if (0 == tele_period) {
+    if (0 == TasmotaGlobal.tele_period) {
       DomoticzSensor(DZ_TEMP, temp);
     }
 #endif  // USE_DOMOTICZ
 #ifdef USE_KNX
-    if (0 == tele_period) {
+    if (0 == TasmotaGlobal.tele_period) {
       KnxSensor(KNX_TEMPERATURE, lmt01_temperature);
     }
 #endif  // USE_KNX

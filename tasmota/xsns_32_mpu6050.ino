@@ -1,7 +1,7 @@
 /*
   xsns_32_mpu6050.ino - MPU6050 gyroscope and temperature sensor support for Tasmota
 
-  Copyright (C) 2020  Oliver Welter
+  Copyright (C) 2021  Oliver Welter
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -262,7 +262,7 @@ bool Xsns32(uint8_t function)
   else if (MPU_6050_found) {
     switch (function) {
       case FUNC_EVERY_SECOND:
-        if (tele_period == Settings.tele_period -3) {
+        if (TasmotaGlobal.tele_period == Settings.tele_period -3) {
           MPU_6050PerformReading();
         }
         break;

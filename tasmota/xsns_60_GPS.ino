@@ -1,7 +1,7 @@
 /*
   xsns_60_GPS.ino - GPS UBLOX support for Tasmota
 
-  Copyright (C) 2020  Theo Arends, Christian Baars and Adrian Scillato
+  Copyright (C) 2021  Theo Arends, Christian Baars and Adrian Scillato
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -340,7 +340,7 @@ void UBXsendCFGLine(uint8_t _line)
 
 void UBXTriggerTele(void)
 {
-  mqtt_data[0] = '\0';
+  ResponseClear();
   if (MqttShowSensor()) {
     MqttPublishPrefixTopic_P(TELE, PSTR(D_RSLT_SENSOR), Settings.flag.mqtt_sensor_retain);
 #ifdef USE_RULES

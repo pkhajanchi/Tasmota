@@ -1,7 +1,7 @@
 /*
   support_buffer.ino - Static binary buffer for Zigbee on Tasmota
 
-  Copyright (C) 2020  Theo Arends and Stephan Hadinger
+  Copyright (C) 2021  Theo Arends and Stephan Hadinger
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -177,6 +177,13 @@ public:
     }
     return 0;
   }
+  uint32_t get32BigEndian(const size_t offset) const {
+    if (offset < len() - 3) {
+      return _buf->buf[offset+3] | (_buf->buf[offset+2] << 8) |
+            (_buf->buf[offset+1] << 16) | (_buf->buf[offset] << 24);
+    }
+    return 0;
+  }
   int32_t get32IBigEndian(const size_t offset) const {
     if (offset < len() - 3) {
       return _buf->buf[offset+3] | (_buf->buf[offset+2] << 8) |
@@ -194,14 +201,10 @@ public:
     return 0;
   }
 
-  // if no NULL is found, returns length until the end of the buffer
-  inline size_t strlen(const size_t offset) const {
-    return strnlen((const char*) &_buf->buf[offset], len() - offset);
-  }
-
-  size_t strlen_s(const size_t offset) const {
-    size_t slen = this->strlen(offset);
-    if (slen == len() - offset) {
+  size_t strlen(const size_t offset) const {
+    if (offset >= len()) { return 0; }
+    size_t slen = strnlen((const char*) &_buf->buf[offset], len() - offset);
+    if (slen == (len() - offset)) {
       return 0;   // we didn't find a NULL char
     } else {
       return slen;

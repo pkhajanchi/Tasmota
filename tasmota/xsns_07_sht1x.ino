@@ -1,7 +1,7 @@
 /*
   xsns_07_sht1x.ino - SHT1x temperature and sensor support for Tasmota
 
-  Copyright (C) 2020  Theo Arends
+  Copyright (C) 2021  Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #ifdef USE_I2C
 #ifdef USE_SHT
 /*********************************************************************************************\
- * SHT1x - Temperature and Humidy
+ * SHT1x - Temperature and Humidity
  *
  * Reading temperature and humidity takes about 320 milliseconds!
  * Source: Marinus vd Broek https://github.com/ESP8266nu/ESPEasy
@@ -172,7 +172,7 @@ void ShtDetect(void)
 
 void ShtEverySecond(void)
 {
-  if (!(uptime %4)) {  // Every 4 seconds
+  if (!(TasmotaGlobal.uptime %4)) {  // Every 4 seconds
     // 344mS
     if (!ShtRead()) {
       AddLogMissed(sht_types, sht_valid);
@@ -183,7 +183,7 @@ void ShtEverySecond(void)
 void ShtShow(bool json)
 {
   if (sht_valid) {
-    TempHumDewShow(json, (0 == tele_period), sht_types, sht_temperature, sht_humidity);
+    TempHumDewShow(json, (0 == TasmotaGlobal.tele_period), sht_types, sht_temperature, sht_humidity);
   }
 }
 

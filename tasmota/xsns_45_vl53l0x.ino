@@ -1,7 +1,7 @@
 /*
   xsns_45_vl53l0x.ino - VL53L0X time of flight sensor support for Tasmota
 
-  Copyright (C) 2020  Theo Arends and Gerhard Mutz
+  Copyright (C) 2021  Theo Arends and Gerhard Mutz
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -119,7 +119,7 @@ void Vl53l0Show(boolean json) {
   if (json) {
     ResponseAppend_P(PSTR(",\"VL53L0X\":{\"" D_JSON_DISTANCE "\":%d}"), Vl53l0x.distance);
 #ifdef USE_DOMOTICZ
-    if (0 == tele_period) {
+    if (0 == TasmotaGlobal.tele_period) {
       DomoticzSensor(DZ_ILLUMINANCE, Vl53l0x.distance);
     }
 #endif  // USE_DOMOTICZ

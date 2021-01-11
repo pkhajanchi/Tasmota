@@ -1,7 +1,7 @@
 /*
   xsns_05_ds18x20.ino - DS18x20 temperature sensor support for Tasmota
 
-  Copyright (C) 2020  Theo Arends
+  Copyright (C) 2021  Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,9 @@
 #define W1_WRITE_SCRATCHPAD  0x4E
 #define W1_READ_SCRATCHPAD   0xBE
 
+#ifndef DS18X20_MAX_SENSORS // DS18X20_MAX_SENSORS fallback to 8 if not defined in user_config_override.h
 #define DS18X20_MAX_SENSORS  8
+#endif
 
 const char kDs18x20Types[] PROGMEM = "DS18x20|DS18S20|DS1822|DS18B20|MAX31850";
 
@@ -341,7 +343,7 @@ void Ds18x20Init(void)
       }
     }
   }
-  AddLog_P2(LOG_LEVEL_DEBUG, PSTR(D_LOG_DSB D_SENSORS_FOUND " %d"), ds18x20_sensors);
+  AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_DSB D_SENSORS_FOUND " %d"), ds18x20_sensors);
 }
 
 void Ds18x20Convert(void)
@@ -457,7 +459,7 @@ void Ds18x20EverySecond(void)
   if (now < w1_power_until)
     return;
 #endif
-  if (uptime & 1
+  if (TasmotaGlobal.uptime & 1
 #ifdef W1_PARASITE_POWER
       // if more than 1 sensor and only parasite power: convert every cycle
       || ds18x20_sensors >= 2
@@ -500,12 +502,12 @@ void Ds18x20Show(bool json)
         }
         ResponseAppend_P(PSTR(",\"%s\":{\"" D_JSON_ID "\":\"%s\",\"" D_JSON_TEMPERATURE "\":%s}"), ds18x20_types, address, temperature);
 #ifdef USE_DOMOTICZ
-        if ((0 == tele_period) && (0 == i)) {
+        if ((0 == TasmotaGlobal.tele_period) && (0 == i)) {
           DomoticzSensor(DZ_TEMP, temperature);
         }
 #endif  // USE_DOMOTICZ
 #ifdef USE_KNX
-        if ((0 == tele_period) && (0 == i)) {
+        if ((0 == TasmotaGlobal.tele_period) && (0 == i)) {
           KnxSensor(KNX_TEMPERATURE, ds18x20_sensor[index].temperature);
         }
 #endif  // USE_KNX

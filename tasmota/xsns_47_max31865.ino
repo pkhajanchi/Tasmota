@@ -1,7 +1,7 @@
 /*
   xsns_39_MAX31865.ino - MAX31865 thermocouple sensor support for Tasmota
 
-  Copyright (C) 2020 Alberto Lopez Siemens
+  Copyright (C) 2021  Alberto Lopez Siemens
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ void MAX31865_Init(void) {
   for (uint32_t i = 0; i < MAX_MAX31865S; i++) {
     if (PinUsed(GPIO_SSPI_MAX31865_CS1, i)) {
       max31865_pins_used |= 1 << i;  //set lowest bit
-      max31865[0].setPins(
+      max31865[i].setPins(
         Pin(GPIO_SSPI_MAX31865_CS1, i),
         Pin(GPIO_SSPI_MOSI),
         Pin(GPIO_SSPI_MISO),
@@ -97,7 +97,7 @@ void MAX31865_Show(bool Json) {
       if (Json) {
         ResponseAppend_P(PSTR(",\"MAX31865%c%d\":{\"" D_JSON_TEMPERATURE "\":%s,\"" D_JSON_RESISTANCE "\":%s,\"" D_JSON_ERROR "\":%d}"), \
           IndexSeparator(), i, temperature, resistance, MAX31865_Result[i].ErrorCode);
-        if ((0 == tele_period) && (!report_once)) {
+        if ((0 == TasmotaGlobal.tele_period) && (!report_once)) {
 #ifdef USE_DOMOTICZ
           DomoticzSensor(DZ_TEMP, temperature);
 #endif  // USE_DOMOTICZ
