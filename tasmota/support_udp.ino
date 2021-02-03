@@ -32,7 +32,6 @@ IPAddress udp_remote_ip;                 // M-Search remote IP address
 uint16_t udp_remote_port;                // M-Search remote port
 
 bool udp_connected = false;
-bool udp_response_mutex = false;         // M-Search response mutex to control re-entry
 
 #ifdef ESP8266
 #ifndef UDP_MAX_PACKETS
@@ -72,7 +71,7 @@ bool UdpDisconnect(void)
     // stop all
     WiFiUDP::stopAll();
 #endif  // !USE_DEVICE_GROUPS
-    AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_UPNP D_MULTICAST_DISABLED));
+    AddLog(LOG_LEVEL_DEBUG, PSTR(D_LOG_UPNP D_MULTICAST_DISABLED));
     udp_connected = false;
   }
   return udp_connected;
@@ -88,20 +87,18 @@ bool UdpConnect(void)
       ip_addr_t addr = IPADDR4_INIT(INADDR_ANY);
       if (UdpCtx.listen(&addr, 1900)) {         // port 1900
         // OK
-        AddLog_P(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_REJOINED));
-        udp_response_mutex = false;
+        AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_REJOINED));
         udp_connected = true;
       }
 #endif  // ESP8266
 #ifdef ESP32
     if (PortUdp.beginMulticast(WiFi.localIP(), IPAddress(239,255,255,250), 1900)) {
-      AddLog_P(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_REJOINED));
-      udp_response_mutex = false;
+      AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_REJOINED));
       udp_connected = true;
 #endif  // ESP32
     }
     if (!udp_connected) {     // if connection failed
-      AddLog_P(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_JOIN_FAILED));
+      AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_UPNP D_MULTICAST_JOIN_FAILED));
     }
   }
   return udp_connected;
@@ -123,28 +120,29 @@ void PollUdp(void)
       packet->buf[packet->len] = 0;   // add NULL at the end of the packet
       char * packet_buffer = (char*) &packet->buf;
       int32_t len = packet->len;
+      AddLog(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: Packet (%d)"), len);
 #endif  // ESP8266
 #ifdef ESP32
-    while (PortUdp.parsePacket()) {
+    while (uint32_t pack_len = PortUdp.parsePacket()) {
       char packet_buffer[UDP_BUFFER_SIZE];     // buffer to hold incoming UDP/SSDP packet
 
       int32_t len = PortUdp.read(packet_buffer, UDP_BUFFER_SIZE -1);
       packet_buffer[len] = 0;
+      PortUdp.flush();
+      AddLog(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: Packet (%d/%d)"), len, pack_len);
 #endif  // ESP32
-      AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: Packet (%d)"), len);
+
       // AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("\n%s"), packet_buffer);
 
       // Simple Service Discovery Protocol (SSDP)
       if (Settings.flag2.emulation) {
 #if defined(USE_SCRIPT_HUE) || defined(USE_ZIGBEE)
-        if (!udp_response_mutex && (strstr_P(packet_buffer, PSTR("M-SEARCH")) != nullptr)) {
+        if (TasmotaGlobal.devices_present && (strstr_P(packet_buffer, PSTR("M-SEARCH")) != nullptr)) {
 #else
-        if (TasmotaGlobal.devices_present && !udp_response_mutex && (strstr_P(packet_buffer, PSTR("M-SEARCH")) != nullptr)) {
+        if (TasmotaGlobal.devices_present && (strstr_P(packet_buffer, PSTR("M-SEARCH")) != nullptr)) {
 #endif
           if (0 == udp_last_received) {
             udp_last_received = millis();
-            udp_response_mutex = true;
-
 #ifdef ESP8266
             udp_remote_ip = packet->srcaddr;
             udp_remote_port = packet->srcport;
@@ -153,41 +151,40 @@ void PollUdp(void)
             udp_remote_port = PortUdp.remotePort();
 #endif
 
-            // AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: M-SEARCH Packet from %s:%d\n%s"),
-            //   udp_remote_ip.toString().c_str(), udp_remote_port, packet_buffer);
+            // AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: M-SEARCH Packet from %_I:%d\n%s"),
+            //   (uint32_t)udp_remote_ip, udp_remote_port, packet_buffer);
 
             LowerCase(packet_buffer, packet_buffer);
             RemoveSpace(packet_buffer);
 
+            bool udp_proccessed = false;      // make sure we process the packet only once
 #ifdef USE_EMULATION_WEMO
-            if (EMUL_WEMO == Settings.flag2.emulation) {
+            if (!udp_proccessed && (EMUL_WEMO == Settings.flag2.emulation)) {
               if (strstr_P(packet_buffer, URN_BELKIN_DEVICE) != nullptr) {     // type1 echo dot 2g, echo 1g's
                 WemoRespondToMSearch(1);
-                return;
+                udp_proccessed = true;
               }
               else if ((strstr_P(packet_buffer, UPNP_ROOTDEVICE) != nullptr) ||  // type2 Echo 2g (echo & echo plus)
                       (strstr_P(packet_buffer, SSDPSEARCH_ALL) != nullptr) ||
                       (strstr_P(packet_buffer, SSDP_ALL) != nullptr)) {
                 WemoRespondToMSearch(2);
-                return;
+                udp_proccessed = true;
               }
             }
 #endif  // USE_EMULATION_WEMO
 
 #ifdef USE_EMULATION_HUE
-            if (EMUL_HUE == Settings.flag2.emulation) {
+            if (!udp_proccessed && (EMUL_HUE == Settings.flag2.emulation)) {
+              AddLog(LOG_LEVEL_DEBUG_MORE, PSTR("UDP: HUE"));
               if ((strstr_P(packet_buffer, PSTR(":device:basic:1")) != nullptr) ||
                   (strstr_P(packet_buffer, UPNP_ROOTDEVICE) != nullptr) ||
                   (strstr_P(packet_buffer, SSDPSEARCH_ALL) != nullptr) ||
                   (strstr_P(packet_buffer, SSDP_ALL) != nullptr)) {
                 HueRespondToMSearch();
-                return;
+                udp_proccessed = true;
               }
             }
 #endif  // USE_EMULATION_HUE
-
-            udp_response_mutex = false;
-            continue;
           }
         }
       }

@@ -723,8 +723,6 @@ public:
 
 
   void log(void) {
-    char hex_char[_payload.len()*2+2];
-		ToHex_P((unsigned char*)_payload.getBuffer(), _payload.len(), hex_char, sizeof(hex_char));
     Response_P(PSTR("{\"" D_JSON_ZIGBEEZCL_RECEIVED "\":{"
                     "\"groupid\":%d," "\"clusterid\":\"0x%04X\"," "\"srcaddr\":\"0x%04X\","
                     "\"srcendpoint\":%d," "\"dstendpoint\":%d," "\"wasbroadcast\":%d,"
@@ -732,18 +730,18 @@ public:
                     "\"fc\":\"0x%02X\","
                     "\"frametype\":%d,\"direction\":%d,\"disableresp\":%d,"
                     "\"manuf\":\"0x%04X\",\"transact\":%d,"
-                    "\"cmdid\":\"0x%02X\",\"payload\":\"%s\"}}"),
+                    "\"cmdid\":\"0x%02X\",\"payload\":\"%_B\"}}"),
                     _groupaddr, _cluster_id, _srcaddr,
                     _srcendpoint, _dstendpoint, _wasbroadcast,
                     _linkquality, _securityuse, _seqnumber,
                     _frame_control,
                     _frame_control.b.frame_type, _frame_control.b.direction, _frame_control.b.disable_def_resp,
                     _manuf_code, _transact_seq, _cmd_id,
-                    hex_char);
+                    &_payload);
     if (Settings.flag3.tuya_serial_mqtt_publish) {
       MqttPublishPrefixTopicRulesProcess_P(TELE, PSTR(D_RSLT_SENSOR));
     } else {
-      AddLogZ_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_ZIGBEE "%s"), TasmotaGlobal.mqtt_data);
+      AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_ZIGBEE "%s"), TasmotaGlobal.mqtt_data);
     }
   }
 
@@ -869,7 +867,7 @@ uint8_t toPercentageCR2032(uint32_t voltage) {
 // Adds to buf:
 // - n bytes: value (typically between 1 and 4 bytes, or bigger for strings)
 // returns number of bytes of attribute, or <0 if error
-int32_t encodeSingleAttribute(class SBuffer &buf, double val_d, const char *val_str, uint8_t attrtype) {
+int32_t encodeSingleAttribute(SBuffer &buf, double val_d, const char *val_str, uint8_t attrtype) {
   uint32_t len = Z_getDatatypeLen(attrtype);    // pre-compute length, overloaded for variable length attributes
   uint32_t u32 = val_d;
   int32_t  i32 = val_d;
@@ -1211,23 +1209,19 @@ void ZCLFrame::parseReportAttributes(Z_attribute_list& attr_list) {
   // The sensor expects the coordinator to send a Default Response to acknowledge the attribute reporting
   if (0 == _frame_control.b.disable_def_resp) {
     // the device expects a default response
-    SBuffer buf(2);
-    buf.add8(_cmd_id);
-    buf.add8(0x00);   // Status = OK
-
-    ZigbeeZCLSend_Raw(ZigbeeZCLSendMessage({
-      _srcaddr,
-      0x0000,
-      _cluster_id,
-      _srcendpoint,
-      ZCL_DEFAULT_RESPONSE,
-      _manuf_code,
-      false /* not cluster specific */,
-      false /* noresponse */,
-      true /* direct no retry */,
-      _transact_seq,  /* zcl transaction id */
-      buf.getBuffer(), buf.len()
-    }));
+    ZCLMessage zcl(2);   // message is 2 bytes
+    zcl.shortaddr = _srcaddr;
+    zcl.cluster = _cluster_id;
+    zcl.endpoint = _srcendpoint;
+    zcl.cmd = ZCL_DEFAULT_RESPONSE;
+    zcl.manuf = _manuf_code;
+    zcl.clusterSpecific = false;  /* not cluster specific */
+    zcl.needResponse = false;     /* noresponse */
+    zcl.direct = true;            /* direct no retry */
+    zcl.setTransac(_transact_seq);
+    zcl.buf.add8(_cmd_id);
+    zcl.buf.add8(0);    // Status = OK
+    zigbeeZCLSendCmd(zcl);
   }
 }
 
@@ -1286,6 +1280,7 @@ void ZCLFrame::removeInvalidAttributes(Z_attribute_list& attr_list) {
 // Note: both function are now split to compute on extracted attributes
 //
 void ZCLFrame::computeSyntheticAttributes(Z_attribute_list& attr_list) {
+  const Z_Device & device = zigbee_devices.findShortAddr(_srcaddr);
   const char * model_c = zigbee_devices.getModelId(_srcaddr);  // null if unknown
   String modelId((char*) model_c);
   // scan through attributes and apply specific converters
@@ -1332,7 +1327,37 @@ void ZCLFrame::computeSyntheticAttributes(Z_attribute_list& attr_list) {
           }
         }
         break;
-      case 0x04030000:    // Pressure
+      case 0x03000000:    // Hue
+      case 0x03000001:    // Sat
+      case 0x03000003:    // X
+      case 0x03000004:    // Y
+        {                 // generate synthetic RGB
+          const Z_attribute * attr_rgb = attr_list.findAttribute(PSTR("RGB"));
+          if (attr_rgb == nullptr) {      // make sure we didn't already computed it
+            uint8_t brightness = 255;
+            if (device.valid()) {
+              const Z_Data_Light & light = device.data.find<Z_Data_Light>(_srcendpoint);
+              if ((&light != nullptr) && (light.validDimmer())) {
+                // Dimmer has a valid value
+                brightness = changeUIntScale(light.getDimmer(), 0, 254, 0, 255);   // range is 0..255
+              }
+            }
+
+            const Z_attribute * attr_hue = attr_list.findAttribute(0x0300, 0x0000);
+            const Z_attribute * attr_sat = attr_list.findAttribute(0x0300, 0x0001);
+            const Z_attribute * attr_x   = attr_list.findAttribute(0x0300, 0x0003);
+            const Z_attribute * attr_y   = attr_list.findAttribute(0x0300, 0x0004);
+            if (attr_hue && attr_sat) {
+              uint8_t sat = changeUIntScale(attr_sat->getUInt(), 0, 254, 0, 255);
+              uint16_t hue = changeUIntScale(attr_hue->getUInt(), 0, 254, 0, 360);
+              Z_Data_Light::toRGBAttributesHSB(attr_list, hue, sat, brightness);
+            } else if (attr_x && attr_y) {
+              Z_Data_Light::toRGBAttributesXYB(attr_list, attr_x->getUInt(), attr_y->getUInt(), brightness);
+            }
+          }
+        }
+        break;
+      case 0x04030000:    // SeaPressure
         {
           int16_t pressure = attr.getInt();
           int16_t pressure_sealevel = (pressure / FastPrecisePow(1.0 - ((float)Settings.altitude / 44330.0f), 5.255f)) - 21.6f;
@@ -1625,7 +1650,7 @@ void ZCLFrame::parseClusterSpecificCommand(Z_attribute_list& attr_list) {
   Z_Device & device = zigbee_devices.getShortAddr(_srcaddr);
   if ((device.debounce_endpoint != 0) && (device.debounce_endpoint == _srcendpoint) && (device.debounce_transact == _transact_seq)) {
     // this is a duplicate, drop the packet
-    AddLog_P(LOG_LEVEL_DEBUG, PSTR(D_LOG_ZIGBEE "Discarding duplicate command from 0x%04X, endpoint %d"), _srcaddr, _srcendpoint);
+    AddLog(LOG_LEVEL_DEBUG, PSTR(D_LOG_ZIGBEE "Discarding duplicate command from 0x%04X, endpoint %d"), _srcaddr, _srcendpoint);
   } else {
     // reset the duplicate marker, parse the packet normally, and set a timer to reset the marker later (which will discard any existing timer for the same device/endpoint)
     device.debounce_endpoint = _srcendpoint;
@@ -1641,6 +1666,23 @@ void ZCLFrame::parseClusterSpecificCommand(Z_attribute_list& attr_list) {
         }
       }
     }
+  }
+  // Send Default Response to acknowledge the attribute reporting
+  if (0 == _frame_control.b.disable_def_resp) {
+    // the device expects a default response
+    ZCLMessage zcl(2);   // message is 4 bytes
+    zcl.shortaddr = _srcaddr;
+    zcl.cluster = _cluster_id;
+    zcl.endpoint = _srcendpoint;
+    zcl.cmd = ZCL_DEFAULT_RESPONSE;
+    zcl.manuf = _manuf_code;
+    zcl.clusterSpecific = false;  /* not cluster specific */
+    zcl.needResponse = false;     /* noresponse */
+    zcl.direct = true;            /* direct no retry */
+    zcl.setTransac(_transact_seq);
+    zcl.buf.add8(_cmd_id);
+    zcl.buf.add8(0x00);   // Status = OK
+    zigbeeZCLSendCmd(zcl);
   }
 }
 
@@ -1903,7 +1945,7 @@ void ZCLFrame::syntheticAqaraVibration(class Z_attribute_list &attr_list, class 
           y = buf2.get16(2);
           x = buf2.get16(4);
           char temp[32];
-          snprintf_P(temp, sizeof(temp), "[%i,%i,%i]", x, y, z);
+          snprintf_P(temp, sizeof(temp), PSTR("[%i,%i,%i]"), x, y, z);
           attr.setStrRaw(temp);
           // calculate angles
           float X = x;
@@ -1912,7 +1954,7 @@ void ZCLFrame::syntheticAqaraVibration(class Z_attribute_list &attr_list, class 
           int32_t Angle_X = 0.5f + atanf(X/sqrtf(z*z+y*y)) * f_180pi;
           int32_t Angle_Y = 0.5f + atanf(Y/sqrtf(x*x+z*z)) * f_180pi;
           int32_t Angle_Z = 0.5f + atanf(Z/sqrtf(x*x+y*y)) * f_180pi;
-          snprintf_P(temp, sizeof(temp), "[%i,%i,%i]", Angle_X, Angle_Y, Angle_Z);
+          snprintf_P(temp, sizeof(temp), PSTR("[%i,%i,%i]"), Angle_X, Angle_Y, Angle_Z);
           attr_list.addAttributePMEM(PSTR("AqaraAngles")).setStrRaw(temp);
         }
       }
@@ -2178,6 +2220,58 @@ void Z_Data::toAttributes(Z_attribute_list & attr_list) const {
         attr.setFloat(fval);
       }
     }
+  }
+}
+
+// Add both attributes RGB and RGBb based on the inputs
+// r,g,b are expected to be 100% brightness
+// brightness is expected 0..255
+void Z_Data_Light::toRGBAttributesRGBb(Z_attribute_list & attr_list, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) {
+  SBuffer rgb(3);
+  rgb.add8(r);
+  rgb.add8(g);
+  rgb.add8(b);
+  attr_list.addAttribute(PSTR("RGB"), true).setBuf(rgb, 0, 3);
+  // now blend with brightness
+  r = changeUIntScale(r, 0, 255, 0, brightness);
+  g = changeUIntScale(g, 0, 255, 0, brightness);
+  b = changeUIntScale(b, 0, 255, 0, brightness);
+  rgb.set8(0, r);
+  rgb.set8(1, g);
+  rgb.set8(2, b);
+  attr_list.addAttribute(PSTR("RGBb"), true).setBuf(rgb, 0, 3);
+}
+
+// Convert from Hue/Sat + Brightness to RGB+RGBb
+// sat: 0..255
+// hue: 0..359
+// brightness: 0..255
+void Z_Data_Light::toRGBAttributesHSB(Z_attribute_list & attr_list, uint16_t hue, uint8_t sat, uint8_t brightness) {
+  uint8_t r,g,b;
+  HsToRgb(hue, sat, &r, &g, &b);
+  Z_Data_Light::toRGBAttributesRGBb(attr_list, r, g, b, brightness);
+}
+
+// Convert X/Y to RGB and RGBb
+// X: 0..65535
+// Y: 0..65535
+// brightness: 0..255
+void Z_Data_Light::toRGBAttributesXYB(Z_attribute_list & attr_list, uint16_t x, uint16_t y, uint8_t brightness) {
+  uint8_t r,g,b;
+  XyToRgb(x / 65535.0f, y / 65535.0f, &r, &g, &b);
+  Z_Data_Light::toRGBAttributesRGBb(attr_list, r, g, b, brightness);
+}
+
+void Z_Data_Light::toRGBAttributes(Z_attribute_list & attr_list) const {
+  uint8_t brightness = 255;
+  if (validDimmer()) {
+    brightness = changeUIntScale(getDimmer(), 0, 254, 0, 255);   // range is 0..255
+  }
+  if (validHue() && validSat()) {
+    uint8_t sat = changeUIntScale(getSat(), 0, 254, 0, 255);
+    Z_Data_Light::toRGBAttributesHSB(attr_list, getHue(), sat, brightness);
+  } else if (validX() && validY()) {
+    Z_Data_Light::toRGBAttributesXYB(attr_list, getX(), getY(), brightness);
   }
 }
 
