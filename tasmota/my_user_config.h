@@ -75,7 +75,7 @@
 #define STA_SSID2              ""                // [Ssid2] Optional alternate AP Wifi SSID
 #define STA_PASS2              ""                // [Password2] Optional alternate AP Wifi password
 #define WIFI_AP_PASSPHRASE     ""                // AccessPoint passphrase. For WPA2 min 8 char, for open use "" (max 63 char).
-#define WIFI_CONFIG_TOOL       WIFI_RETRY        // [WifiConfig] Default tool if wifi fails to connect (default option: 4 - WIFI_RETRY)
+#define WIFI_CONFIG_TOOL       WIFI_MANAGER      // [WifiConfig] Default tool if wifi fails to connect (default option: 4 - WIFI_RETRY)
                                                  // (WIFI_RESTART, WIFI_MANAGER, WIFI_RETRY, WIFI_WAIT, WIFI_SERIAL, WIFI_MANAGER_RESET_ONLY)
                                                  // The configuration can be changed after first setup using WifiConfig 0, 2, 4, 5, 6 and 7.
 #define WIFI_ARP_INTERVAL      0                 // [SetOption41] Send gratuitous ARP interval
@@ -104,7 +104,7 @@
 #define MQTT_HOST              "192.168.0.200"                // [MqttHost]
 #define MQTT_FINGERPRINT1      "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"  // [MqttFingerprint1] (auto-learn)
 #define MQTT_FINGERPRINT2      "DA 39 A3 EE 5E 6B 4B 0D 32 55 BF EF 95 60 18 90 AF D8 07 09"  // [MqttFingerprint2] (invalid)
-#define MQTT_PORT              1883              // [MqttPort] MQTT port (10123 on CloudMQTT)
+#define MQTT_PORT              1883           // [MqttPort] MQTT port (10123 on CloudMQTT)
 #define MQTT_USER              "envion"       // [MqttUser] MQTT user
 #define MQTT_PASS              "envion"       // [MqttPassword] MQTT password
 
