@@ -47,27 +47,8 @@ uint32_t ESP_getFreeHeap(void) {
   return ESP.getFreeHeap();
 }
 
-uint32_t ESP_getMaxAllocHeap(void) {
-/*
-  From libraries.rst
-  ESP.getMaxFreeBlockSize() returns the largest contiguous free RAM block in
-  the heap, useful for checking heap fragmentation.  **NOTE:** Maximum
-  ``malloc()``able block will be smaller due to memory manager overheads.
-
-  From HeapMetric.ino
-  ESP.getMaxFreeBlockSize() does not indicate the amount of memory that is
-  available for use in a single malloc call.  It indicates the size of a
-  contiguous block of (raw) memory before the umm_malloc overhead is removed.
-
-  It should also be pointed out that, if you allow for the needed overhead in
-  your malloc call, it could still fail in the general case. An IRQ handler
-  could have allocated memory between the time you call
-  ESP.getMaxFreeBlockSize() and your malloc call, reducing the available
-  memory.
-*/
-  uint32_t free_block_size = ESP.getMaxFreeBlockSize();
-  if (free_block_size > 100) { free_block_size -= 100; }
-  return free_block_size;
+float ESP_getFreeHeap1024(void) {
+  return ((float)ESP_getFreeHeap()) / 1024;
 }
 
 void ESP_Restart(void) {
@@ -103,11 +84,17 @@ void *special_malloc(uint32_t size) {
 
 #include <nvs.h>
 
-#if CONFIG_IDF_TARGET_ESP32
-#include <rom/rtc.h>
-//#include "esp32/rom/rtc.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/rtc.h"
+// See libraries\ESP32\examples\ResetReason.ino
+#if ESP_IDF_VERSION_MAJOR > 3      // IDF 4+
+  #if CONFIG_IDF_TARGET_ESP32      // ESP32/PICO-D4
+    #include "esp32/rom/rtc.h"
+  #elif CONFIG_IDF_TARGET_ESP32S2  // ESP32-S2
+    #include "esp32s2/rom/rtc.h"
+  #else
+    #error Target CONFIG_IDF_TARGET is not supported
+  #endif
+#else // ESP32 Before IDF 4.0
+  #include "rom/rtc.h"
 #endif
 
 #include <esp_phy_init.h>
@@ -211,15 +198,8 @@ void NvsInfo(void) {
 // Flash memory mapping
 //
 
+// See Esp.cpp
 #include "Esp.h"
-
-#if CONFIG_IDF_TARGET_ESP32
-#include "rom/spi_flash.h"
-//#include "esp32/rom/spi_flash.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/spi_flash.h"
-#endif
-
 #include "esp_spi_flash.h"
 #include <memory>
 #include <soc/soc.h>
@@ -229,6 +209,18 @@ extern "C" {
 #include "esp_ota_ops.h"
 #include "esp_image_format.h"
 }
+#include "esp_system.h"
+#if ESP_IDF_VERSION_MAJOR > 3       // IDF 4+
+  #if CONFIG_IDF_TARGET_ESP32       // ESP32/PICO-D4
+    #include "esp32/rom/spi_flash.h"
+  #elif CONFIG_IDF_TARGET_ESP32S2   // ESP32-S2
+    #include "esp32s2/rom/spi_flash.h"
+  #else
+    #error Target CONFIG_IDF_TARGET is not supported
+  #endif
+#else // ESP32 Before IDF 4.0
+  #include "rom/spi_flash.h"
+#endif
 
 uint32_t EspFlashBaseAddress(void) {
   const esp_partition_t* partition = esp_ota_get_next_update_partition(nullptr);
@@ -420,8 +412,11 @@ uint32_t ESP_getSketchSize(void) {
 }
 
 uint32_t ESP_getFreeHeap(void) {
-//  return ESP.getFreeHeap();
-  return ESP.getMaxAllocHeap();
+  return ESP.getFreeHeap();
+}
+
+float ESP_getFreeHeap1024(void) {
+  return ((float)ESP_getFreeHeap()) / 1024;
 }
 
 uint32_t ESP_getMaxAllocHeap(void) {
