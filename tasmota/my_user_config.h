@@ -107,9 +107,9 @@
 #define MQTT_HOST              "192.168.0.200"   // [MqttHost]
 #define MQTT_FINGERPRINT1      0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00  // [MqttFingerprint1] (auto-learn)
 #define MQTT_FINGERPRINT2      0xDA,0x39,0xA3,0xEE,0x5E,0x6B,0x4B,0x0D,0x32,0x55,0xBF,0xEF,0x95,0x60,0x18,0x90,0xAF,0xD8,0x07,0x09  // [MqttFingerprint2] (invalid)
-#define MQTT_PORT              1883              // [MqttPort] MQTT port (10123 on CloudMQTT)
-#define MQTT_USER              "DVES_USER"       // [MqttUser] MQTT user
-#define MQTT_PASS              "DVES_PASS"       // [MqttPassword] MQTT password
+#define MQTT_PORT              1883               // [MqttPort] MQTT port (10123 on CloudMQTT)
+#define MQTT_USER              "envion"           // [MqttUser] MQTT user
+#define MQTT_PASS              "envion"           // [MqttPassword] MQTT password
 
 #define MQTT_BUTTON_RETAIN     false             // [ButtonRetain] Button may send retain flag (false = off, true = on)
 #define MQTT_POWER_RETAIN      true             // [PowerRetain] Power status message may send retain flag (false = off, true = on)
