@@ -42,7 +42,7 @@
 #define TO_KELVIN(x) ((x) + 273.15)
 
 // Parameters for equation
-#define ANALOG_V33                    3.3              // ESP8266 Analog voltage
+#define ANALOG_V33                    3.3              // ESP8266 / ESP32 Analog voltage
 #define ANALOG_T0                     TO_KELVIN(25.0)  // 25 degrees Celcius in Kelvin (= 298.15)
 
 // Shelly 2.5 NTC Thermistor
@@ -356,13 +356,13 @@ float AdcGetPh(uint32_t idx) {
   return ph;
 }
 
-uint16_t AdcGetRange(uint32_t idx) {
+float AdcGetRange(uint32_t idx) {
   // formula for calibration: value, fromLow, fromHigh, toLow, toHigh
   // Example: 514, 632, 236, 0, 100
   // int( ((<param2> - <analog-value>) / (<param2> - <param1>) ) * (<param3> - <param4>) ) + <param4> )
   int adc = AdcRead(Adc[idx].pin, 2);
   double adcrange = ( ((double)Adc[idx].param2 - (double)adc) / ( ((double)Adc[idx].param2 - (double)Adc[idx].param1)) * ((double)Adc[idx].param3 - (double)Adc[idx].param4) + (double)Adc[idx].param4 );
-  return (uint16_t)adcrange;
+  return (float)adcrange;
 }
 
 void AdcGetCurrentPower(uint8_t idx, uint8_t factor) {
@@ -410,9 +410,9 @@ void AdcEverySecond(void) {
     if (ADC_TEMP == Adc[idx].type) {
       int adc = AdcRead(Adc[idx].pin, 2);
       // Steinhart-Hart equation for thermistor as temperature sensor
-      double Rt = (adc * Adc[idx].param1) / (1024.0 * ANALOG_V33 - (double)adc);
-      double BC = (double)Adc[idx].param3 / 10000;
-      double T = BC / (BC / ANALOG_T0 + TaylorLog(Rt / (double)Adc[idx].param2));
+      double Rt = (adc * Adc[idx].param1) / (ANALOG_RANGE * ANALOG_V33 - (double)adc);  // Shelly param1 = 32000 (ANALOG_NTC_BRIDGE_RESISTANCE)
+      double BC = (double)Adc[idx].param3 / 10000;                                      // Shelly param3 = 3350 (ANALOG_NTC_B_COEFFICIENT)
+      double T = BC / (BC / ANALOG_T0 + TaylorLog(Rt / (double)Adc[idx].param2));       // Shelly param2 = 10000 (ANALOG_NTC_RESISTANCE)
       Adc[idx].temperature = ConvertTemp(TO_CELSIUS(T));
     }
     else if (ADC_CT_POWER == Adc[idx].type) {
@@ -498,14 +498,16 @@ void AdcShow(bool json) {
         break;
       }
       case ADC_RANGE: {
-        uint16_t adc_range = AdcGetRange(idx);
+        float adc_range = AdcGetRange(idx);
+        char range_chr[FLOATSZ];
+        dtostrfd(adc_range, Settings.flag2.frequency_resolution, range_chr);
 
         if (json) {
           AdcShowContinuation(&jsonflg);
-          ResponseAppend_P(PSTR("\"" D_JSON_RANGE "%s\":%d"), adc_idx, adc_range);
+          ResponseAppend_P(PSTR("\"" D_JSON_RANGE "%s\":%s"), adc_idx, range_chr);
 #ifdef USE_WEBSERVER
         } else {
-          WSContentSend_PD(HTTP_SNS_RANGE, adc_name, adc_range);
+          WSContentSend_PD(HTTP_SNS_RANGE_CHR, adc_name, range_chr);
 #endif  // USE_WEBSERVER
         }
         break;

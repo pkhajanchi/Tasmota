@@ -131,7 +131,7 @@ const uint8_t LIGHT_COLOR_SIZE = 25;   // Char array scolor size
 const char kLightCommands[] PROGMEM = "|"  // No prefix
   // SetOptions synonyms
   D_SO_CHANNELREMAP "|" D_SO_MULTIPWM "|" D_SO_ALEXACTRANGE "|" D_SO_POWERONFADE "|" D_SO_PWMCT "|"
-  D_SO_WHITEBLEND "|" D_SO_VIRTUALCT "|"
+  D_SO_WHITEBLEND "|"
   // Other commands
   D_CMND_COLOR "|" D_CMND_COLORTEMPERATURE "|" D_CMND_DIMMER "|" D_CMND_DIMMER_RANGE "|" D_CMND_DIMMER_STEP "|" D_CMND_LEDTABLE "|" D_CMND_FADE "|"
   D_CMND_RGBWWTABLE "|" D_CMND_SCHEME "|" D_CMND_SPEED "|" D_CMND_WAKEUP "|" D_CMND_WAKEUPDURATION "|"
@@ -150,7 +150,7 @@ const char kLightCommands[] PROGMEM = "|"  // No prefix
 
 SO_SYNONYMS(kLightSynonyms,
   37, 68, 82, 91, 92,
-  105, 106,
+  105,
 );
 
 void (* const LightCommand[])(void) PROGMEM = {
@@ -234,7 +234,6 @@ struct LIGHT {
   bool     fade_initialized = false;      // dont't fade at startup
   bool     fade_running = false;
 #ifdef USE_DEVICE_GROUPS
-  uint8_t  device_group_index;
   uint8_t  last_scheme = 0;
   bool     devgrp_no_channels_out = false; // don't share channels with device group (e.g. if scheme set by other device)
 #ifdef USE_DGR_LIGHT_SEQUENCE
@@ -506,9 +505,6 @@ class LightStateClass {
       uint8_t prev_bri = _briRGB;
       _briRGB = bri_rgb;
       if (bri_rgb > 0) { addRGBMode(); }
-#ifdef USE_PWM_DIMMER
-      if (PWM_DIMMER == TasmotaGlobal.module_type) PWMDimmerSetBrightnessLeds(-1);
-#endif  // USE_PWM_DIMMER
       return prev_bri;
     }
 
@@ -517,9 +513,6 @@ class LightStateClass {
       uint8_t prev_bri = _briCT;
       _briCT = bri_ct;
       if (bri_ct > 0) { addCTMode(); }
-#ifdef USE_PWM_DIMMER
-      if (PWM_DIMMER == TasmotaGlobal.module_type) PWMDimmerSetBrightnessLeds(-1);
-#endif  // USE_PWM_DIMMER
       return prev_bri;
     }
 
@@ -1090,6 +1083,13 @@ void LightCalcPWMRange(void) {
   //AddLog(LOG_LEVEL_DEBUG_MORE, PSTR("LightCalcPWMRange %d %d - %d %d"), Settings.dimmer_hw_min, Settings.dimmer_hw_max, Light.pwm_min, Light.pwm_max);
 }
 
+void LightSetScheme(uint32_t scheme) {
+  if (!scheme && Settings.light_scheme) {
+    Light.update = true;
+  }
+  Settings.light_scheme = scheme;
+}
+
 void LightInit(void)
 {
   // move white blend mode from deprecated `RGBWWTable` to `SetOption105`
@@ -1118,12 +1118,6 @@ void LightInit(void)
     Light.device--;   // we take the last two devices as lights
   }
   LightCalcPWMRange();
-#ifdef USE_DEVICE_GROUPS
-  Light.device_group_index = 0;
-  if (Settings.flag4.multiple_device_groups) {  // SetOption88 - Enable relays in separate device groups
-    Light.device_group_index = Light.device - 1;
-  }
-#endif  // USE_DEVICE_GROUPS
 #ifdef DEBUG_LIGHT
   AddLog_P(LOG_LEVEL_DEBUG_MORE, "LightInit Light.pwm_multi_channels=%d Light.subtype=%d Light.device=%d TasmotaGlobal.devices_present=%d",
     Light.pwm_multi_channels, Light.subtype, Light.device, TasmotaGlobal.devices_present);
@@ -1162,7 +1156,7 @@ void LightInit(void)
     max_scheme = LS_POWER;
   }
   if ((LS_WAKEUP == Settings.light_scheme) || (Settings.light_scheme > max_scheme)) {
-    Settings.light_scheme = LS_POWER;
+    LightSetScheme(LS_POWER);
   }
   Light.power = 0;
   Light.update = true;
@@ -1321,7 +1315,7 @@ void LightSetSignal(uint16_t lo, uint16_t hi, uint16_t value)
     uint16_t signal = changeUIntScale(value, lo, hi, 0, 255);  // 0..255
 //    AddLog(LOG_LEVEL_DEBUG, PSTR(D_LOG_DEBUG "Light signal %d"), signal);
     light_controller.changeRGB(signal, 255 - signal, 0, true);  // keep bri
-    Settings.light_scheme = 0;
+    LightSetScheme(LS_POWER);
     if (0 == light_state.getBri()) {
       light_controller.changeBri(50);
     }
@@ -1681,7 +1675,7 @@ void LightAnimate(void)
             MqttPublishPrefixTopicRulesProcess_P(RESULT_OR_STAT, PSTR(D_CMND_WAKEUP));
 
             Light.wakeup_active = 0;
-            Settings.light_scheme = LS_POWER;
+            LightSetScheme(LS_POWER);
           }
         }
         break;
@@ -1708,7 +1702,7 @@ void LightAnimate(void)
 #ifdef USE_DEVICE_GROUPS
     if (Settings.light_scheme != Light.last_scheme) {
       Light.last_scheme = Settings.light_scheme;
-      SendDeviceGroupMessage(Light.device_group_index, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_SCHEME, Settings.light_scheme);
+      SendDeviceGroupMessage(Light.device, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_SCHEME, Settings.light_scheme);
       Light.devgrp_no_channels_out = false;
     }
 #endif  // USE_DEVICE_GROUPS
@@ -1730,7 +1724,7 @@ void LightAnimate(void)
     }
     if (Light.update) {
 #ifdef USE_DEVICE_GROUPS
-      if (Light.power && !Light.devgrp_no_channels_out) LightSendDeviceGroupStatus(false);
+      if (Light.power && !Light.devgrp_no_channels_out) LightSendDeviceGroupStatus();
 #endif  // USE_DEVICE_GROUPS
 
       uint16_t cur_col_10[LST_MAX];   // 10 bits resolution
@@ -1850,6 +1844,16 @@ uint16_t fadeGammaReverse(uint32_t channel, uint16_t vg) {
   }
 }
 
+uint8_t LightGetCurFadeBri(void) {
+  uint8_t max_bri = 0;
+  uint8_t bri_i = 0;
+  for (uint8_t i = 0; i < LST_MAX; i++) {
+    bri_i = changeUIntScale(fadeGammaReverse(i, Light.fade_cur_10[i]), 4, 1023, 1, 100);
+    if (bri_i > max_bri) max_bri = bri_i ;
+  }
+  return max_bri;
+}
+
 bool LightApplyFade(void) {   // did the value chanegd and needs to be applied
   static uint32_t last_millis = 0;
   uint32_t now = millis();
@@ -1965,6 +1969,10 @@ void LightSetOutputs(const uint16_t *cur_col_10) {
         if (!Settings.flag4.zerocross_dimmer) {
           analogWrite(Pin(GPIO_PWM1, i), bitRead(TasmotaGlobal.pwm_inverted, i) ? Settings.pwm_range - cur_col : cur_col);
         }
+#ifdef USE_PWM_DIMMER
+        // Animate brightness LEDs to follow PWM dimmer brightness
+        if (PWM_DIMMER == TasmotaGlobal.module_type) PWMDimmerSetBrightnessLeds(change10to8(cur_col));
+#endif  // USE_PWM_DIMMER
       }
     }
   }
@@ -2172,25 +2180,28 @@ bool calcGammaBulbs(uint16_t cur_col_10[5]) {
 }
 
 #ifdef USE_DEVICE_GROUPS
-void LightSendDeviceGroupStatus(bool status)
+void LightSendDeviceGroupStatus()
 {
   static uint8_t last_bri;
   uint8_t bri = light_state.getBri();
-  bool send_bri_update = (status || bri != last_bri);
+  bool send_bri_update = (building_status_message || bri != last_bri);
   if (Light.subtype > LST_SINGLE) {
-    static uint8_t channels[LST_MAX + 1] = { 0, 0, 0, 0, 0, 0 };
-    if (status) {
-      light_state.getChannels(channels);
+    static uint8_t last_channels[LST_MAX + 1] = { 0, 0, 0, 0, 0, 0 };
+    uint8_t channels[LST_MAX];
+
+    light_state.getChannelsRaw(channels);
+    uint8_t color_mode = light_state.getColorMode();
+    if (!(color_mode & LCM_RGB)) channels[0] = channels[1] = channels[2] = 0;
+    if (!(color_mode & LCM_CT)) channels[3] = channels[4] = 0;
+    if (building_status_message || memcmp(channels, last_channels, LST_MAX)) {
+      memcpy(last_channels, channels, LST_MAX);
+      last_channels[LST_MAX]++;
+      SendDeviceGroupMessage(Light.device, (send_bri_update ? DGR_MSGTYP_PARTIAL_UPDATE : DGR_MSGTYP_UPDATE), DGR_ITEM_LIGHT_CHANNELS, last_channels);
     }
-    else {
-      memcpy(channels, Light.new_color, LST_MAX);
-      channels[LST_MAX]++;
-    }
-    SendDeviceGroupMessage(Light.device_group_index, (send_bri_update ? DGR_MSGTYP_PARTIAL_UPDATE : DGR_MSGTYP_UPDATE), DGR_ITEM_LIGHT_CHANNELS, channels);
   }
   if (send_bri_update) {
     last_bri = bri;
-    SendDeviceGroupMessage(Light.device_group_index, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_BRI, light_state.getBri());
+    SendDeviceGroupMessage(Light.device, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_BRI, light_state.getBri());
   }
 }
 
@@ -2199,10 +2210,7 @@ void LightHandleDevGroupItem(void)
   static bool send_state = false;
   static bool restore_power = false;
 
-//#ifdef USE_PWM_DIMMER_REMOTE
-//  if (!(XdrvMailbox.index & DGR_FLAG_LOCAL)) return;
-//#endif  // USE_PWM_DIMMER_REMOTE
-  if (*XdrvMailbox.topic != Light.device_group_index) return;
+  if (Settings.flag4.multiple_device_groups ? Settings.device_group_tie[*XdrvMailbox.topic] != Light.device : !(XdrvMailbox.index & DGR_FLAG_LOCAL)) return;
   bool more_to_come;
   uint32_t value = XdrvMailbox.payload;
   switch (XdrvMailbox.command_code) {
@@ -2218,7 +2226,7 @@ void LightHandleDevGroupItem(void)
 
       LightAnimate();
 
-      TasmotaGlobal.skip_light_fade = true;
+      TasmotaGlobal.skip_light_fade = false;
       if (send_state && !more_to_come) {
         light_controller.saveSettings();
         if (Settings.flag3.hass_tele_on_power) {  // SetOption59 - Send tele/%topic%/STATE in addition to stat/%topic%/RESULT
@@ -2242,8 +2250,9 @@ void LightHandleDevGroupItem(void)
       }
       break;
     case DGR_ITEM_LIGHT_CHANNELS:
-#ifdef USE_DGR_LIGHT_SEQUENCE
       {
+        uint8_t bri = light_state.getBri();
+#ifdef USE_DGR_LIGHT_SEQUENCE
         static uint8_t last_sequence = 0;
 
         // If a sequence offset is set, set the channels to the ones we received <SequenceOffset>
@@ -2259,13 +2268,11 @@ void LightHandleDevGroupItem(void)
             memcpy(&Light.channels_fifo[last_entry], XdrvMailbox.data, LST_MAX);
           }
         }
-        else {
+        else
 #endif  // USE_DGR_LIGHT_SEQUENCE
           light_controller.changeChannels((uint8_t *)XdrvMailbox.data);
-#ifdef USE_DGR_LIGHT_SEQUENCE
-        }
+        light_controller.changeBri(bri);
       }
-#endif  // USE_DGR_LIGHT_SEQUENCE
       send_state = true;
       break;
     case DGR_ITEM_LIGHT_FIXED_COLOR:
@@ -2298,7 +2305,7 @@ void LightHandleDevGroupItem(void)
         uint32_t old_bri = light_state.getBri();
         light_controller.changeChannels(Light.entry_color);
         light_controller.changeBri(old_bri);
-        Settings.light_scheme = 0;
+        LightSetScheme(LS_POWER);
         if (!restore_power && !Light.power) {
           Light.old_power = Light.power;
           Light.power = 0xff;
@@ -2319,9 +2326,9 @@ void LightHandleDevGroupItem(void)
       }
       break;
     case DGR_ITEM_STATUS:
-      SendLocalDeviceGroupMessage(DGR_MSGTYP_PARTIAL_UPDATE, DGR_ITEM_LIGHT_FADE, Settings.light_fade,
+      SendDeviceGroupMessage(Light.device, DGR_MSGTYP_PARTIAL_UPDATE, DGR_ITEM_LIGHT_FADE, Settings.light_fade,
         DGR_ITEM_LIGHT_SPEED, Settings.light_speed, DGR_ITEM_LIGHT_SCHEME, Settings.light_scheme);
-      LightSendDeviceGroupStatus(true);
+      LightSendDeviceGroupStatus();
       break;
   }
 }
@@ -2458,7 +2465,7 @@ void CmndSupportColor(void)
 #ifdef USE_LIGHT_PALETTE
         }
 #endif  // USE_LIGHT_PALETTE
-        Settings.light_scheme = 0;
+        LightSetScheme(LS_POWER);
         coldim = true;
       } else {             // Color3, 4, 5 and 6
         for (uint32_t i = 0; i < LST_RGB; i++) {
@@ -2627,7 +2634,7 @@ void CmndScheme(void)
         Light.wheel--;
 #endif  // USE_LIGHT_PALETTE
       }
-      Settings.light_scheme = XdrvMailbox.payload;
+      LightSetScheme(XdrvMailbox.payload);
       if (LS_WAKEUP == Settings.light_scheme) {
         Light.wakeup_active = 3;
       }
@@ -2650,7 +2657,7 @@ void CmndWakeup(void)
     light_controller.changeDimmer(XdrvMailbox.payload);
   }
   Light.wakeup_active = 3;
-  Settings.light_scheme = LS_WAKEUP;
+  LightSetScheme(LS_WAKEUP);
   LightPowerOn();
   ResponseCmndChar(PSTR(D_JSON_STARTED));
 }
@@ -2714,12 +2721,18 @@ void CmndDimmer(void)
   } else {
     dimmer = light_state.getDimmer(XdrvMailbox.index);
   }
-  // Handle +/- special command
+  // Handle +/-/!/</> special commands
   if (1 == XdrvMailbox.data_len) {
     if ('+' == XdrvMailbox.data[0]) {
       XdrvMailbox.payload = (dimmer > (100 - Settings.dimmer_step - 1)) ? 100 : dimmer + Settings.dimmer_step;
     } else if ('-' == XdrvMailbox.data[0]) {
       XdrvMailbox.payload = (dimmer < (Settings.dimmer_step + 1)) ? 1 : dimmer - Settings.dimmer_step;
+    } else if ('!' == XdrvMailbox.data[0] && Light.fade_running) {
+      XdrvMailbox.payload = LightGetCurFadeBri();
+    } else if ('<' == XdrvMailbox.data[0] ) {
+      XdrvMailbox.payload = 1;
+    } else if ('>' == XdrvMailbox.data[0] ) {
+      XdrvMailbox.payload = 100;
     }
   }
   // If value is ok, change it, otherwise report old value
@@ -2743,7 +2756,7 @@ void CmndDimmer(void)
     uint8_t bri = light_state.getBri();
     if (bri != Settings.bri_power_on) {
       Settings.bri_power_on = bri;
-      SendDeviceGroupMessage(Light.device_group_index, DGR_MSGTYP_PARTIAL_UPDATE, DGR_ITEM_BRI_POWER_ON, Settings.bri_power_on);
+      SendDeviceGroupMessage(Light.device, DGR_MSGTYP_PARTIAL_UPDATE, DGR_ITEM_BRI_POWER_ON, Settings.bri_power_on);
     }
 #endif  // USE_PWM_DIMMER && USE_DEVICE_GROUPS
     Light.update = true;
@@ -2836,58 +2849,63 @@ void CmndRgbwwTable(void)
 
 void CmndFade(void)
 {
-  // Fade        - Show current Fade state
-  // Fade 0      - Turn Fade Off
-  // Fade On     - Turn Fade On
-  // Fade Toggle - Toggle Fade state
-  switch (XdrvMailbox.payload) {
-  case 0: // Off
-  case 1: // On
-    Settings.light_fade = XdrvMailbox.payload;
-    break;
-  case 2: // Toggle
-    Settings.light_fade ^= 1;
-    break;
+  if (2 == XdrvMailbox.index) {
+    // Home Assistant backwards compatibility, can be removed mid 2021
+  } else {
+    // Fade        - Show current Fade state
+    // Fade 0      - Turn Fade Off
+    // Fade On     - Turn Fade On
+    // Fade Toggle - Toggle Fade state
+    switch (XdrvMailbox.payload) {
+    case 0: // Off
+    case 1: // On
+      Settings.light_fade = XdrvMailbox.payload;
+      break;
+    case 2: // Toggle
+      Settings.light_fade ^= 1;
+      break;
+    }
+  #ifdef USE_DEVICE_GROUPS
+    if (XdrvMailbox.payload >= 0 && XdrvMailbox.payload <= 2) SendDeviceGroupMessage(Light.device, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_FADE, Settings.light_fade);
+  #endif  // USE_DEVICE_GROUPS
+    if (!Settings.light_fade) { Light.fade_running = false; }
   }
-#ifdef USE_DEVICE_GROUPS
-  if (XdrvMailbox.payload >= 0 && XdrvMailbox.payload <= 2) SendDeviceGroupMessage(Light.device_group_index, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_FADE, Settings.light_fade);
-#endif  // USE_DEVICE_GROUPS
-  if (!Settings.light_fade) { Light.fade_running = false; }
   ResponseCmndStateText(Settings.light_fade);
 }
 
 void CmndSpeed(void)
 {
-  if (XdrvMailbox.index == 2) {
+  if (2 == XdrvMailbox.index) {
+    // Speed2 setting will be used only once, then revert to fade/speed
     if ((XdrvMailbox.payload >= 0) && (XdrvMailbox.payload <= 40)) {
       Light.fade_once_enabled = true;
-      Light.fade_once_value = XdrvMailbox.payload > 0;
+      Light.fade_once_value = (XdrvMailbox.payload > 0);
       Light.speed_once_enabled = true;
       Light.speed_once_value = XdrvMailbox.payload;
       if (!Light.fade_once_value) { Light.fade_running = false; }
     }
-    return;
-  }
-
-  // Speed 1  - Fast
-  // Speed 40 - Very slow
-  // Speed +  - Increment Speed
-  // Speed -  - Decrement Speed
-  if (1 == XdrvMailbox.data_len) {
-    if (('+' == XdrvMailbox.data[0]) && (Settings.light_speed > 1)) {
-      XdrvMailbox.payload = Settings.light_speed - 1;
+    ResponseCmndIdxNumber(Light.speed_once_value);
+  } else {
+    // Speed 1  - Fast
+    // Speed 40 - Very slow
+    // Speed +  - Increment Speed
+    // Speed -  - Decrement Speed
+    if (1 == XdrvMailbox.data_len) {
+      if (('+' == XdrvMailbox.data[0]) && (Settings.light_speed > 1)) {
+        XdrvMailbox.payload = Settings.light_speed - 1;
+      }
+      else if (('-' == XdrvMailbox.data[0]) && (Settings.light_speed < 40)) {
+        XdrvMailbox.payload = Settings.light_speed + 1;
+      }
     }
-    else if (('-' == XdrvMailbox.data[0]) && (Settings.light_speed < 40)) {
-      XdrvMailbox.payload = Settings.light_speed + 1;
-    }
-  }
-  if ((XdrvMailbox.payload > 0) && (XdrvMailbox.payload <= 40)) {
-    Settings.light_speed = XdrvMailbox.payload;
+    if ((XdrvMailbox.payload > 0) && (XdrvMailbox.payload <= 40)) {
+      Settings.light_speed = XdrvMailbox.payload;
 #ifdef USE_DEVICE_GROUPS
-    SendDeviceGroupMessage(Light.device_group_index, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_SPEED, Settings.light_speed);
+      SendDeviceGroupMessage(Light.device, DGR_MSGTYP_UPDATE, DGR_ITEM_LIGHT_SPEED, Settings.light_speed);
 #endif  // USE_DEVICE_GROUPS
+    }
+    ResponseCmndNumber(Settings.light_speed);
   }
-  ResponseCmndNumber(Settings.light_speed);
 }
 
 void CmndWakeupDuration(void)
