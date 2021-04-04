@@ -73,6 +73,7 @@
 #define D_JSON_EXPORT "Export"
 #define D_JSON_EXPORT_ACTIVE "ExportActive"
 #define D_JSON_EXPORT_REACTIVE "ExportReactive"
+#define D_JSON_EXPORT_POWER "ExportPower"
 #define D_JSON_FAILED "Failed"
 #define D_JSON_FALLBACKTOPIC "FallbackTopic"
 #define D_JSON_FEATURES "Features"
@@ -87,6 +88,7 @@
 #define D_JSON_GATEWAY "Gateway"
 #define D_JSON_GREEN "Green"
 #define D_JSON_GROUPS "Groups"
+#define D_JSON_HALLEFFECT "HallEffect"
 #define D_JSON_HALTING "Halting"
 #define D_JSON_HEAPSIZE "Heap"
 #define D_JSON_HIGH "High"
@@ -99,6 +101,7 @@
 #define D_JSON_ID "Id"
 #define D_JSON_ILLUMINANCE "Illuminance"
 #define D_JSON_IMPORT_ACTIVE "ImportActive"
+#define D_JSON_IMPORT_POWER "ImportPower"
 #define D_JSON_IMPORT_REACTIVE "ImportReactive"
 #define D_JSON_INFRARED "Infrared"
 #define D_JSON_UNKNOWN "Unknown"
@@ -209,6 +212,8 @@
 #define D_JSON_IMPORT "Import"
 #define D_JSON_EXPORT "Export"
 #define D_JSON_TOTAL_ACTIVE "TotalActive"
+#define D_JSON_SIGNALSTRENGTH "SignalStrength"
+#define D_JSON_CHIPTEMPERATURE "ChipTemperature"
 
 #define D_RSLT_ENERGY "ENERGY"
 #define D_RSLT_HASS_STATE "HASS_STATE"
@@ -328,6 +333,8 @@
 #define D_CMND_DEVGROUP_SEND "DevGroupSend"
 #define D_CMND_DEVGROUP_SHARE "DevGroupShare"
 #define D_CMND_DEVGROUPSTATUS "DevGroupStatus"
+#define D_CMND_DEVGROUP_TIE "DevGroupTie"
+#define D_CMND_SERIALBUFFER "SerialBuffer"
 #define D_CMND_SERIALSEND "SerialSend"
 #define D_CMND_SERIALDELIMITER "SerialDelimiter"
 #define D_CMND_BAUDRATE "Baudrate"
@@ -363,6 +370,8 @@
 #define D_CMND_MQTTCLIENT "MqttClient"
 #define D_CMND_MQTTUSER "MqttUser"
 #define D_CMND_MQTTPASSWORD "MqttPassword"
+#define D_CMND_MQTTKEEPALIVE "MqttKeepAlive"
+#define D_CMND_MQTTTIMEOUT "MqttTimeout"
 #define D_CMND_TLSKEY "TLSKey"
 #define D_CMND_FULLTOPIC "FullTopic"
 #define D_CMND_PREFIX "Prefix"
@@ -377,6 +386,8 @@
 #define D_CMND_SWITCHRETAIN "SwitchRetain"
 #define D_CMND_POWERRETAIN "PowerRetain"
 #define D_CMND_SENSORRETAIN "SensorRetain"
+#define D_CMND_INFORETAIN "InfoRetain"
+#define D_CMND_STATERETAIN "StateRetain"
 #define D_CMND_PUBLISH "Publish"
 
 // Commands xdrv_01_webserver.ino
@@ -430,7 +441,6 @@
 #define D_SO_POWERONFADE "PowerOnFade"      // SO91
 #define D_SO_PWMCT "PWMCT"                  // SO92
 #define D_SO_WHITEBLEND "WhiteBlend"        // SO105
-#define D_SO_VIRTUALCT "VirtualCT"          // SO106
 #define D_CMND_CHANNEL "Channel"
 #define D_CMND_COLOR "Color"
 #define D_CMND_COLORTEMPERATURE "CT"
@@ -546,7 +556,7 @@
 #define D_CMND_ZIGBEE_PERMITJOIN "PermitJoin"
 #define D_CMND_ZIGBEE_STATUS "Status"
 #define D_CMND_ZIGBEE_RESET "Reset"
-  #define D_JSON_ZIGBEE_CC2530 "CC2530"
+  #define D_JSON_ZIGBEE_CC2530 "CCxxxx"
   #define D_JSON_ZIGBEE_EZSP "EZSP"
 #define D_CMND_ZIGBEEZNPRECEIVE "ZNPReceive"      // only for debug
 #define D_CMND_ZIGBEE_EZSP_RECEIVE "EZSPReceive"      // only for debug
@@ -659,6 +669,7 @@
 #define D_CMND_SHUTTER_ENABLEENDSTOPTIME "EnableEndStopTime"
 #define D_CMND_SHUTTER_INVERTWEBBUTTONS "InvertWebButtons"
 #define D_CMND_SHUTTER_PWMRANGE "PWMRange"
+#define D_CMND_SHUTTER_UNITTEST "UnitTest"
 
 // Commands xdrv_32_hotplug.ino
 #define D_CMND_HOTPLUG "HotPlug"
@@ -672,6 +683,12 @@
 // Commands xdrv_38_ping.ino
 #define D_CMND_PING "Ping"
 #define D_JSON_PING "Ping"
+
+// Commands xdrv_52_berry.ino - Berry scripting language
+#define D_PRFX_BR "Br"
+#define D_CMND_BR_RUN ""
+#define D_CMND_BR_RESET "Reset"
+#define D_BR_NOT_STARTED  "Berry not started"
 
 // Commands xsns_02_analog.ino
 #define D_CMND_ADCPARAM "AdcParam"
@@ -716,6 +733,7 @@
 #define D_LOG_WIFI "WIF: "         // Wifi
 #define D_LOG_ZIGBEE "ZIG: "       // Zigbee
 #define D_LOG_TCP "TCP: "          // TCP bridge
+#define D_LOG_BERRY "BRY: "        // Berry scripting language
 
 /********************************************************************************************/
 
@@ -770,6 +788,7 @@ const char JSON_SNS_RANGE[] PROGMEM = ",\"%s\":{\"" D_JSON_RANGE "\":%d}";
 const char JSON_SNS_GNGPM[] PROGMEM = ",\"%s\":{\"" D_JSON_TOTAL_USAGE "\":%s,\"" D_JSON_FLOWRATE "\":%s}";
 
 const char S_LOG_I2C_FOUND_AT[] PROGMEM = D_LOG_I2C "%s " D_FOUND_AT " 0x%x";
+const char S_LOG_I2C_FOUND_AT_PORT[] PROGMEM = D_LOG_I2C "%s " D_FOUND_AT " 0x%x (" D_PORT " %d)";
 
 const char S_RSLT_POWER[] PROGMEM = D_RSLT_POWER;
 const char S_RSLT_RESULT[] PROGMEM = D_RSLT_RESULT;
@@ -807,8 +826,10 @@ const char HTTP_SNS_CO2EAVG[]       PROGMEM = "{s}%s "  D_ECO2                "{
 const char HTTP_SNS_GALLONS[]       PROGMEM = "{s}%s "  D_TOTAL_USAGE         "{m}%s " D_UNIT_GALLONS             "{e}";
 const char HTTP_SNS_GPM[]           PROGMEM = "{s}%s "  D_FLOW_RATE           "{m}%s " D_UNIT_GALLONS_PER_MIN     "{e}";
 const char HTTP_SNS_MOISTURE[]      PROGMEM = "{s}%s "  D_MOISTURE            "{m}%d " D_UNIT_PERCENT             "{e}";
+const char HTTP_SNS_RANGE_CHR[]     PROGMEM = "{s}%s "  D_RANGE               "{m}%s"                             "{e}";
 const char HTTP_SNS_RANGE[]         PROGMEM = "{s}%s "  D_RANGE               "{m}%d"                             "{e}";
 const char HTTP_SNS_DISTANCE[]      PROGMEM = "{s}%s "  D_DISTANCE            "{m}%d " D_UNIT_MILLIMETER          "{e}";
+const char HTTP_SNS_DISTANCE_CM[]   PROGMEM = "{s}%s "  D_DISTANCE            "{m}%s " D_UNIT_CENTIMETER          "{e}";
 const char HTTP_SNS_VOLTAGE[]       PROGMEM = "{s}"     D_VOLTAGE             "{m}%s " D_UNIT_VOLT                "{e}";
 const char HTTP_SNS_CURRENT[]       PROGMEM = "{s}"     D_CURRENT             "{m}%s " D_UNIT_AMPERE              "{e}";
 const char HTTP_SNS_POWER[]         PROGMEM = "{s}"     D_POWERUSAGE          "{m}%s " D_UNIT_WATT                "{e}";
@@ -819,11 +840,12 @@ const char HTTP_SNS_EC[]            PROGMEM = "{s}%s "  D_EC                  "{
 const char HTTP_SNS_O2[]            PROGMEM = "{s}%s "  D_O2                  "{m}%s " D_UNIT_PERCENT             "{e}";
 const char HTTP_SNS_LITERS[]        PROGMEM = "{s}%s "  D_VOLUME              "{m}%s " D_UNIT_LITERS              "{e}";
 const char HTTP_SNS_LPM[]           PROGMEM = "{s}%s "  D_FLOW_RATE           "{m}%s " D_UNIT_LITERS_PER_MIN      "{e}";
-const char HTTP_SNS_DO[]            PROGMEM = "{s}%s "  D_DO                  "{m}%s " D_UNIT_PARTS_PER_MILLION   "{e}";
+const char HTTP_SNS_DO[]            PROGMEM = "{s}%s "  D_DO                  "{m}%s " D_UNIT_MILIGRAMS_PER_LITER "{e}";
 const char HTTP_SNS_COLOR_RED[]     PROGMEM = "{s}%s "  D_COLOR_RED           "{m}%u "                            "{e}";
 const char HTTP_SNS_COLOR_GREEN[]   PROGMEM = "{s}%s "  D_COLOR_GREEN         "{m}%u "                            "{e}";
 const char HTTP_SNS_COLOR_BLUE[]    PROGMEM = "{s}%s "  D_COLOR_BLUE          "{m}%u "                            "{e}";
 const char HTTP_SNS_MILLILITERS[]   PROGMEM = "{s}%s "  D_VOLUME              "{m}%s " D_UNIT_MILLILITERS         "{e}";
+const char HTTP_SNS_GAS[]           PROGMEM = "{s}%s "  D_GAS                 "{m}%d " D_UNIT_PERCENT          "LEL{e}";
 #endif  // USE_WEBSERVER
 
 #endif  // _I18N_H_
